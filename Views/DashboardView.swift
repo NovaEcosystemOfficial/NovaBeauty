@@ -10,12 +10,12 @@ struct DashboardView: View {
     @State private var mostraNuovoAppuntamento = false
 
     private var appuntamentiUtente: [Appuntamento] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return appuntamenti.filter { $0.ownerID == userID }
     }
 
     private var nomeAttivita: String {
-        guard let userID = session.user?.uid else { return "Beauty Souls" }
+        guard let userID = session.userID else { return "Beauty Souls" }
         let nome = profili.first(where: { $0.ownerID == userID })?.nome.trimmed ?? ""
         return nome.isEmpty ? "Beauty Souls" : nome
     }

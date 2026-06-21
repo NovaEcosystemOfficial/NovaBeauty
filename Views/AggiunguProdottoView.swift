@@ -65,7 +65,7 @@ struct AggiungiProdottoView: View {
     }
     
     private func salva() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }

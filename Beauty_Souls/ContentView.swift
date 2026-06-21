@@ -9,7 +9,7 @@ struct ContentView: View {
     @Query private var profili: [ProfiloAttivita]
 
     private var profiliUtente: [ProfiloAttivita] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return profili.filter { $0.ownerID == userID }
     }
 
@@ -62,8 +62,8 @@ struct ContentView: View {
                 .tint(themeManager.theme.primary)
             }
         }
-        .task(id: session.user?.uid) {
-            guard let userID = session.user?.uid else { return }
+        .task(id: session.userID) {
+            guard let userID = session.userID else { return }
             do {
                 try DataOwnershipMigrator.claimLegacyData(for: userID, in: context)
                 _ = try await CloudBackupService.restoreIfLocalDataIsMissing(
@@ -79,7 +79,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .background, let userID = session.user?.uid else { return }
+            guard phase == .background, let userID = session.userID else { return }
             Task {
                 try? await CloudBackupService.backup(userID: userID, context: context)
             }

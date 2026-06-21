@@ -5,14 +5,14 @@ import SwiftData
 
 @MainActor
 final class AuthSessionManager: ObservableObject {
-    @Published private(set) var user: User?
+    @Published private(set) var userID: String?
     @Published private(set) var isLoading = true
 
     private var listener: AuthStateDidChangeListenerHandle?
 
     init() {
         listener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            self?.user = user
+            self?.userID = user?.uid
             self?.isLoading = false
         }
     }

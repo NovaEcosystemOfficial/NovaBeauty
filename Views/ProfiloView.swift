@@ -24,7 +24,7 @@ struct ProfiloView: View {
     @State private var isSyncing = false
 
     private var profiliUtente: [ProfiloAttivita] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return profili.filter { $0.ownerID == userID }
     }
 
@@ -194,7 +194,7 @@ struct ProfiloView: View {
     }
 
     private func salva() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }
@@ -269,7 +269,7 @@ struct ProfiloView: View {
     }
 
     private func backupCloud() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }

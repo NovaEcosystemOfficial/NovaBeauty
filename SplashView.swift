@@ -12,7 +12,7 @@ struct SplashView: View {
         if isActive {
             if session.isLoading {
                 ProgressView("Caricamento…")
-            } else if session.user != nil {
+            } else if session.userID != nil {
                 ContentView()
             } else {
                 LoginView()

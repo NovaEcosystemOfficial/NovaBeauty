@@ -14,7 +14,7 @@ struct ClientiView: View {
     @State private var errorMessage = ""
 
     private var clientiUtente: [Cliente] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return clienti
             .filter { $0.ownerID == userID }
             .sorted { $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
@@ -93,7 +93,7 @@ struct ClientiView: View {
     }
     
     private func aggiungiCliente() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }
@@ -126,7 +126,7 @@ struct ClientiView: View {
     }
     
     private func importContacts() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }

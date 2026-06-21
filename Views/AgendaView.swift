@@ -12,7 +12,7 @@ struct AgendaView: View {
     @State private var errorMessage = ""
 
     private var appuntamentiUtente: [Appuntamento] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return appuntamenti.filter { $0.ownerID == userID }
     }
 

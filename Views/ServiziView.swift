@@ -14,7 +14,7 @@ struct ServiziView: View {
     @State private var errorMessage = ""
 
     private var serviziUtente: [Servizio] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return servizi
             .filter { $0.ownerID == userID }
             .sorted { $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
@@ -92,7 +92,7 @@ struct ServiziView: View {
     }
     
     private func aggiungiServizio() {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida."
             return
         }

@@ -11,7 +11,7 @@ struct MagazzinoView: View {
     @State private var mostraAggiunta = false
 
     private var prodottiUtente: [ProdottoMagazzino] {
-        guard let userID = session.user?.uid else { return [] }
+        guard let userID = session.userID else { return [] }
         return prodotti
             .filter { $0.ownerID == userID }
             .sorted { $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }

@@ -60,7 +60,7 @@ struct SceltaAttivitaView: View {
 
     // MARK: - SALVA + CAMBIA TEMA
     private func salva(tipo: String) {
-        guard let userID = session.user?.uid else {
+        guard let userID = session.userID else {
             errorMessage = "Sessione non valida. Accedi nuovamente."
             return
         }
