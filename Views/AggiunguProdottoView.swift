@@ -3,7 +3,8 @@ import SwiftData
 
 struct AggiungiProdottoView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     
@@ -12,7 +13,8 @@ struct AggiungiProdottoView: View {
     @State private var quantita = ""
     @State private var soglia = ""
     @State private var link = ""
-    
+    @State private var errorMessage = ""
+
     var body: some View {
         NavigationStack {
             
@@ -52,18 +54,36 @@ struct AggiungiProdottoView: View {
                 }
             }
         }
+        .alert("Dati non validi", isPresented: Binding(
+            get: { !errorMessage.isEmpty },
+            set: { if !$0 { errorMessage = "" } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
     
     private func salva() {
-        guard let q = Int(quantita),
-              let s = Int(soglia) else { return }
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida."
+            return
+        }
+        let cleanName = nome.trimmed
+        guard !cleanName.isEmpty,
+              let q = Int(quantita), q >= 0,
+              let s = Int(soglia), s >= 0 else {
+            errorMessage = "Inserisci un nome e quantità non negative."
+            return
+        }
         
         let nuovo = ProdottoMagazzino(
-            nome: nome,
-            categoria: categoria,
+            ownerID: userID,
+            nome: cleanName,
+            categoria: categoria.trimmed,
             quantita: q,
             sogliaMinima: s,
-            linkFornitore: link
+            linkFornitore: link.trimmed
         )
         
         context.insert(nuovo)

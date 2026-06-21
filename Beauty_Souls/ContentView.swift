@@ -2,24 +2,27 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @EnvironmentObject var themeManager: ThemeManager
-    @Query private var profili: [ProfiloAttivita]   // 👈 IMPORTANTISSIMO
+    @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var session: AuthSessionManager
+    @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
+    @Query private var profili: [ProfiloAttivita]
+
+    private var profiliUtente: [ProfiloAttivita] {
+        guard let userID = session.user?.uid else { return [] }
+        return profili.filter { $0.ownerID == userID }
+    }
 
     private var haTipoAttivita: Bool {
-        profili.contains { !$0.tipoAttivita.isEmpty }
+        profiliUtente.contains { !$0.tipoAttivita.isEmpty }
     }
 
     var body: some View {
-
-        if !haTipoAttivita {
-
-            // 🔥 SCHERMATA INIZIALE
-            SceltaAttivitaView()
-
-        } else {
-
-            // 🔥 APP NORMALE
-            TabView {
+        Group {
+            if !haTipoAttivita {
+                SceltaAttivitaView()
+            } else {
+                TabView {
 
                 DashboardView()
                     .tabItem {
@@ -55,8 +58,31 @@ struct ContentView: View {
                     .tabItem {
                         Label("Profilo", systemImage: "person.crop.circle.fill")
                     }
+                }
+                .tint(themeManager.theme.primary)
             }
-            .tint(themeManager.theme.primary)
+        }
+        .task(id: session.user?.uid) {
+            guard let userID = session.user?.uid else { return }
+            do {
+                try DataOwnershipMigrator.claimLegacyData(for: userID, in: context)
+                _ = try await CloudBackupService.restoreIfLocalDataIsMissing(
+                    userID: userID,
+                    context: context
+                )
+                let profiliAggiornati = try context.fetch(FetchDescriptor<ProfiloAttivita>())
+                if let profilo = profiliAggiornati.first(where: { $0.ownerID == userID }) {
+                    themeManager.aggiornaTema(tipo: profilo.tipoAttivita)
+                }
+            } catch {
+                // La modalità locale resta disponibile anche senza rete o Firestore.
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .background, let userID = session.user?.uid else { return }
+            Task {
+                try? await CloudBackupService.backup(userID: userID, context: context)
+            }
         }
     }
 }

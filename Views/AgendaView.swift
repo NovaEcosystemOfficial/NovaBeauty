@@ -1,12 +1,21 @@
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct AgendaView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Environment(\.modelContext) private var context
     @Query(sort: \Appuntamento.data) private var appuntamenti: [Appuntamento]
-    
+
+    @State private var errorMessage = ""
+
+    private var appuntamentiUtente: [Appuntamento] {
+        guard let userID = session.user?.uid else { return [] }
+        return appuntamenti.filter { $0.ownerID == userID }
+    }
+
     var body: some View {
         NavigationStack {
             
@@ -16,12 +25,12 @@ struct AgendaView: View {
                 
                 List {
                     
-                    ForEach(Array(appuntamenti.enumerated()), id: \.element.id) { _, appuntamento in
+                    ForEach(appuntamentiUtente) { appuntamento in
                         
                         VStack(alignment: .leading, spacing: 6) {
                             
                             HStack {
-                                Text(appuntamento.cliente.nome)
+                                Text(appuntamento.cliente?.nome ?? "Cliente non disponibile")
                                     .font(.headline)
                                     .foregroundColor(themeManager.theme.text)
                                 
@@ -49,12 +58,28 @@ struct AgendaView: View {
             }
             .navigationTitle("Agenda")
         }
+        .alert("Errore", isPresented: Binding(
+            get: { !errorMessage.isEmpty },
+            set: { if !$0 { errorMessage = "" } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
     
     private func elimina(at offsets: IndexSet) {
         for index in offsets {
-            context.delete(appuntamenti[index])
+            let appuntamento = appuntamentiUtente[index]
+            UNUserNotificationCenter.current().removePendingNotificationRequests(
+                withIdentifiers: [appuntamento.notificationIdentifier]
+            )
+            context.delete(appuntamento)
         }
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            errorMessage = "Eliminazione non riuscita: \(error.localizedDescription)"
+        }
     }
 }

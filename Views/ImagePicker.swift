@@ -13,6 +13,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
         return picker
     }
 
@@ -33,6 +34,10 @@ struct ImagePicker: UIViewControllerRepresentable {
                 parent.selectedImage = image
             }
 
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
         }
     }

@@ -1,11 +1,7 @@
 import SwiftUI
-import FirebaseAuth
-import SwiftData
 
 struct SplashView: View {
-
-    @EnvironmentObject var themeManager: ThemeManager
-    @Query private var profili: [ProfiloAttivita]
+    @EnvironmentObject private var session: AuthSessionManager
 
     @State private var isActive = false
     @State private var scale: CGFloat = 0.8
@@ -14,26 +10,10 @@ struct SplashView: View {
     var body: some View {
 
         if isActive {
-
-            if Auth.auth().currentUser != nil {
-
-                if let profilo = profili.first {
-
-                    Group {
-                        if profilo.tipoAttivita.isEmpty {
-                            SceltaAttivitaView()
-                        } else {
-                            ContentView()
-                        }
-                    }
-                    .onAppear {
-                        themeManager.aggiornaTema(tipo: profilo.tipoAttivita)
-                    }
-
-                } else {
-                    SceltaAttivitaView()
-                }
-
+            if session.isLoading {
+                ProgressView("Caricamento…")
+            } else if session.user != nil {
+                ContentView()
             } else {
                 LoginView()
             }
@@ -73,8 +53,6 @@ struct SplashView: View {
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                     isActive = true
-
-                    
                 }
             }
         }

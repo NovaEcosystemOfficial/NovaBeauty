@@ -3,18 +3,31 @@ import SwiftData
 
 struct DashboardView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Query private var appuntamenti: [Appuntamento]
+    @Query private var profili: [ProfiloAttivita]
     @State private var mostraNuovoAppuntamento = false
-    
+
+    private var appuntamentiUtente: [Appuntamento] {
+        guard let userID = session.user?.uid else { return [] }
+        return appuntamenti.filter { $0.ownerID == userID }
+    }
+
+    private var nomeAttivita: String {
+        guard let userID = session.user?.uid else { return "Beauty Souls" }
+        let nome = profili.first(where: { $0.ownerID == userID })?.nome.trimmed ?? ""
+        return nome.isEmpty ? "Beauty Souls" : nome
+    }
+
     var appuntamentiOggi: Int {
-        appuntamenti.filter {
+        appuntamentiUtente.filter {
             Calendar.current.isDateInToday($0.data)
         }.count
     }
     
     var incassoOggi: Double {
-        appuntamenti
+        appuntamentiUtente
             .filter { Calendar.current.isDateInToday($0.data) }
             .reduce(0) { $0 + $1.prezzo }
     }
@@ -26,7 +39,7 @@ struct DashboardView: View {
             
             VStack(spacing: 20) {
                 
-                Text("Beauty_Souls")
+                Text(nomeAttivita)
                     .font(.largeTitle.bold())
                     .foregroundColor(themeManager.theme.primary)
                 
@@ -62,11 +75,13 @@ struct DashboardView: View {
                 Button {
                     let username = "kekkaeciro2018"
                     
-                    if let appURL = URL(string: "tiktok://user?username=\(username)"),
-                       UIApplication.shared.canOpenURL(appURL) {
-                        UIApplication.shared.open(appURL)
-                    } else if let webURL = URL(string: "https://www.tiktok.com/@\(username)") {
-                        UIApplication.shared.open(webURL)
+                    guard let appURL = URL(string: "tiktok://user?username=\(username)"),
+                          let webURL = URL(string: "https://www.tiktok.com/@\(username)") else { return }
+
+                    UIApplication.shared.open(appURL) { opened in
+                        if !opened {
+                            UIApplication.shared.open(webURL)
+                        }
                     }
                 } label: {
                     HStack {

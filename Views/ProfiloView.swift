@@ -4,7 +4,8 @@ import UIKit
 
 struct ProfiloView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Environment(\.modelContext) private var context
     @Query private var profili: [ProfiloAttivita]
 
@@ -17,7 +18,33 @@ struct ProfiloView: View {
 
     @State private var selectedImage: UIImage?
     @State private var showImagePicker = false
-    @State private var confermaReset = false   // 👈 NEW
+    @State private var confermaReset = false
+    @State private var errorMessage = ""
+    @State private var successMessage = ""
+    @State private var isSyncing = false
+
+    private var profiliUtente: [ProfiloAttivita] {
+        guard let userID = session.user?.uid else { return [] }
+        return profili.filter { $0.ownerID == userID }
+    }
+
+    private var profiloCorrente: ProfiloAttivita? {
+        profiliUtente.first
+    }
+
+    private var nomeVisualizzato: String {
+        let value = nome.trimmed
+        return value.isEmpty ? "Beauty Souls" : value
+    }
+
+    private var tipoVisualizzato: String {
+        switch profiloCorrente?.tipoAttivita {
+        case "barber": return "Barber Shop"
+        case "parrucchiere": return "Parrucchiere"
+        case "nails": return "Nail Artist"
+        default: return "Estetica & Benessere"
+        }
+    }
 
     var body: some View {
 
@@ -55,11 +82,11 @@ struct ProfiloView: View {
                             }
                         }
 
-                        Text("Beauty Souls")
+                        Text(nomeVisualizzato)
                             .font(.title.bold())
                             .foregroundColor(themeManager.theme.primary)
 
-                        Text("Estetica & Benessere")
+                        Text(tipoVisualizzato)
                             .foregroundColor(themeManager.theme.text.opacity(0.6))
 
                         Text("Profilo Attività")
@@ -97,6 +124,33 @@ struct ProfiloView: View {
                         .cornerRadius(15)
                         .padding(.top, 5)
 
+                        Button("Esci dall’account") {
+                            logout()
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(themeManager.theme.primary)
+
+                        Button {
+                            backupCloud()
+                        } label: {
+                            HStack {
+                                if isSyncing {
+                                    ProgressView()
+                                }
+                                Text(isSyncing ? "Sincronizzazione…" : "Salva backup cloud")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isSyncing)
+
+                        if !successMessage.isEmpty {
+                            Text(successMessage)
+                                .font(.footnote)
+                                .foregroundColor(.green)
+                        }
+
                     }
                     .padding()
                 }
@@ -108,12 +162,20 @@ struct ProfiloView: View {
                 caricaProfilo()
             }
             .alert("Sei sicuro?", isPresented: $confermaReset) {
-                Button("Cancella", role: .destructive) {
+                Button("Continua", role: .destructive) {
                     resetAttivita()
                 }
                 Button("Annulla", role: .cancel) { }
             } message: {
-                Text("Perderai il profilo attuale")
+                Text("Potrai scegliere un nuovo tipo di attività senza perdere clienti, appuntamenti o magazzino.")
+            }
+            .alert("Errore", isPresented: Binding(
+                get: { !errorMessage.isEmpty },
+                set: { if !$0 { errorMessage = "" } }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
             }
         }
     }
@@ -132,42 +194,96 @@ struct ProfiloView: View {
     }
 
     private func salva() {
-        if let profilo = profili.first {
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida."
+            return
+        }
+        guard !nome.trimmed.isEmpty else {
+            errorMessage = "Inserisci il nome dell’attività."
+            return
+        }
+
+        if let profilo = profiloCorrente {
             profilo.nome = nome
             profilo.telefono = telefono
             profilo.indirizzo = indirizzo
             profilo.email = email
             profilo.orari = orari
+            profilo.descrizione = descrizione
+            if let selectedImage {
+                profilo.immagine = selectedImage.jpegData(compressionQuality: 0.82)
+            }
         } else {
             let nuovo = ProfiloAttivita(
-                nome: nome,
+                ownerID: userID,
+                nome: nome.trimmed,
                 telefono: telefono,
                 indirizzo: indirizzo,
                 email: email,
                 orari: orari,
-                tipoAttivita: ""
+                tipoAttivita: "estetica",
+                descrizione: descrizione,
+                immagine: selectedImage?.jpegData(compressionQuality: 0.82)
             )
             context.insert(nuovo)
         }
 
-        try? context.save()
+        do {
+            try context.save()
+            successMessage = "Profilo salvato."
+        } catch {
+            errorMessage = "Salvataggio non riuscito: \(error.localizedDescription)"
+        }
     }
 
     private func caricaProfilo() {
-        guard let profilo = profili.first else { return }
+        guard let profilo = profiloCorrente else { return }
 
         nome = profilo.nome
         telefono = profilo.telefono
         indirizzo = profilo.indirizzo
         email = profilo.email
         orari = profilo.orari
+        descrizione = profilo.descrizione
+        if let data = profilo.immagine {
+            selectedImage = UIImage(data: data)
+        }
     }
 
-    // 🔥 RESET
     private func resetAttivita() {
-        for profilo in profili {
-            context.delete(profilo)
+        guard let profilo = profiloCorrente else { return }
+        profilo.tipoAttivita = ""
+        do {
+            try context.save()
+        } catch {
+            errorMessage = "Modifica non riuscita: \(error.localizedDescription)"
         }
-        try? context.save()
+    }
+
+    private func logout() {
+        do {
+            try session.signOut()
+        } catch {
+            errorMessage = "Disconnessione non riuscita: \(error.localizedDescription)"
+        }
+    }
+
+    private func backupCloud() {
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida."
+            return
+        }
+
+        isSyncing = true
+        successMessage = ""
+        Task {
+            defer { isSyncing = false }
+            do {
+                try await CloudBackupService.backup(userID: userID, context: context)
+                successMessage = "Backup cloud completato."
+            } catch {
+                errorMessage = "Backup non riuscito: \(error.localizedDescription)"
+            }
+        }
     }
 }

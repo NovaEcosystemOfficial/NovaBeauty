@@ -3,12 +3,18 @@ import SwiftData
 
 struct StatisticheView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Query private var appuntamenti: [Appuntamento]
-    
+
+    private var appuntamentiUtente: [Appuntamento] {
+        guard let userID = session.user?.uid else { return [] }
+        return appuntamenti.filter { $0.ownerID == userID }
+    }
+
     var meseCorrente: [Appuntamento] {
         let calendar = Calendar.current
-        return appuntamenti.filter {
+        return appuntamentiUtente.filter {
             calendar.isDate($0.data, equalTo: Date(), toGranularity: .month)
         }
     }
@@ -22,7 +28,7 @@ struct StatisticheView: View {
     }
     
     var clienteTop: String {
-        let grouped = Dictionary(grouping: meseCorrente, by: { $0.cliente.nome })
+        let grouped = Dictionary(grouping: meseCorrente, by: { $0.cliente?.nome ?? "Cliente non disponibile" })
         let sorted = grouped.sorted { $0.value.count > $1.value.count }
         return sorted.first?.key ?? "Nessuno"
     }

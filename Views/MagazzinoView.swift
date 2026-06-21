@@ -3,12 +3,20 @@ import SwiftData
 
 struct MagazzinoView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Environment(\.modelContext) private var context
     @Query private var prodotti: [ProdottoMagazzino]
     
     @State private var mostraAggiunta = false
-    
+
+    private var prodottiUtente: [ProdottoMagazzino] {
+        guard let userID = session.user?.uid else { return [] }
+        return prodotti
+            .filter { $0.ownerID == userID }
+            .sorted { $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
+    }
+
     var body: some View {
         NavigationStack {
             
@@ -17,7 +25,7 @@ struct MagazzinoView: View {
                     .ignoresSafeArea()
                 
                 List {
-                    ForEach(prodotti) { prodotto in
+                    ForEach(prodottiUtente) { prodotto in
                         
                         VStack(alignment: .leading, spacing: 6) {
                             
@@ -92,7 +100,7 @@ struct MagazzinoView: View {
     
     private func elimina(at offsets: IndexSet) {
         for index in offsets {
-            context.delete(prodotti[index])
+            context.delete(prodottiUtente[index])
         }
     }
 }

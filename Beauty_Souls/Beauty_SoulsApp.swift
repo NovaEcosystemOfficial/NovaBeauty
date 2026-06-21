@@ -1,27 +1,21 @@
 import SwiftUI
 import SwiftData
-import UserNotifications
 import FirebaseCore
 
 @main
 struct Beauty_SoulsApp: App {
-    
-    @StateObject var theme = ThemeManager()
-    
+    @StateObject private var theme = ThemeManager()
+    @StateObject private var session = AuthSessionManager()
+
     init() {
         FirebaseApp.configure()
-        
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if granted {
-                print("Permesso notifiche concesso")
-            }
-        }
     }
 
     var body: some Scene {
         WindowGroup {
             SplashView()
                 .environmentObject(theme)
+                .environmentObject(session)
         }
         .modelContainer(for: [
             Cliente.self,

@@ -4,13 +4,22 @@ import Contacts
 
 struct ClientiView: View {
     @EnvironmentObject var themeManager: ThemeManager
-    
+    @EnvironmentObject private var session: AuthSessionManager
+
     @Environment(\.modelContext) private var context
     @Query private var clienti: [Cliente]
     
     @State private var nome = ""
     @State private var telefono = ""
-    
+    @State private var errorMessage = ""
+
+    private var clientiUtente: [Cliente] {
+        guard let userID = session.user?.uid else { return [] }
+        return clienti
+            .filter { $0.ownerID == userID }
+            .sorted { $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
+    }
+
     var body: some View {
         NavigationStack {
             
@@ -21,7 +30,7 @@ struct ClientiView: View {
                 VStack {
                     
                     List {
-                        ForEach(clienti) { cliente in
+                        ForEach(clientiUtente) { cliente in
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(cliente.nome)
@@ -43,9 +52,12 @@ struct ClientiView: View {
                         
                         TextField("Nome cliente", text: $nome)
                             .textFieldStyle(.roundedBorder)
+                            .textContentType(.name)
                         
                         TextField("Telefono", text: $telefono)
                             .textFieldStyle(.roundedBorder)
+                            .keyboardType(.phonePad)
+                            .textContentType(.telephoneNumber)
                         
                         Button("Aggiungi Cliente") {
                             aggiungiCliente()
@@ -70,10 +82,33 @@ struct ClientiView: View {
             }
             .navigationTitle("Clienti")
         }
+        .alert("Attenzione", isPresented: Binding(
+            get: { !errorMessage.isEmpty },
+            set: { if !$0 { errorMessage = "" } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
     
     private func aggiungiCliente() {
-        let nuovo = Cliente(nome: nome, telefono: telefono)
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida."
+            return
+        }
+        let cleanName = nome.trimmed
+        let cleanPhone = telefono.trimmed
+        guard !cleanName.isEmpty, !cleanPhone.isEmpty else {
+            errorMessage = "Nome e telefono sono obbligatori."
+            return
+        }
+        guard !clientiUtente.contains(where: { $0.telefono == cleanPhone }) else {
+            errorMessage = "Esiste già un cliente con questo numero."
+            return
+        }
+
+        let nuovo = Cliente(ownerID: userID, nome: cleanName, telefono: cleanPhone)
         context.insert(nuovo)
         nome = ""
         telefono = ""
@@ -81,12 +116,20 @@ struct ClientiView: View {
     
     private func eliminaCliente(at offsets: IndexSet) {
         for index in offsets {
-            context.delete(clienti[index])
+            context.delete(clientiUtente[index])
+        }
+        do {
+            try context.save()
+        } catch {
+            errorMessage = "Eliminazione non riuscita: \(error.localizedDescription)"
         }
     }
     
     private func importContacts() {
-        
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida."
+            return
+        }
         let store = CNContactStore()
         
         store.requestAccess(for: .contacts) { granted, error in
@@ -114,9 +157,9 @@ struct ClientiView: View {
                             
                             DispatchQueue.main.async {
                                 
-                                if !clienti.contains(where: { $0.telefono == phone }) {
+                                if !clientiUtente.contains(where: { $0.telefono == phone }) {
                                     
-                                    let nuovoCliente = Cliente(nome: name, telefono: phone)
+                                    let nuovoCliente = Cliente(ownerID: userID, nome: name.trimmed, telefono: phone)
                                     context.insert(nuovoCliente)
                                     
                                 }
@@ -124,8 +167,18 @@ struct ClientiView: View {
                         }
                         
                     } catch {
-                        print("Errore contatti:", error)
+                        DispatchQueue.main.async {
+                            errorMessage = "Importazione non riuscita: \(error.localizedDescription)"
+                        }
                     }
+                }
+            } else if let error {
+                DispatchQueue.main.async {
+                    errorMessage = "Accesso ai contatti non consentito: \(error.localizedDescription)"
+                }
+            } else {
+                DispatchQueue.main.async {
+                    errorMessage = "Consenti l’accesso ai contatti dalle Impostazioni di iOS."
                 }
             }
         }

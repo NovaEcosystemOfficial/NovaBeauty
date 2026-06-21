@@ -3,7 +3,11 @@ import SwiftData
 
 struct SceltaAttivitaView: View {
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject private var session: AuthSessionManager
     @Environment(\.modelContext) private var context
+    @Query private var profili: [ProfiloAttivita]
+
+    @State private var errorMessage = ""
 
     var body: some View {
 
@@ -23,10 +27,19 @@ struct SceltaAttivitaView: View {
                     bottone("Centro Estetico", tipo: "estetica")
                     bottone("Barber Shop", tipo: "barber")
                     bottone("Parrucchiere", tipo: "parrucchiere")
+                    bottone("Nail Artist", tipo: "nails")
 
                 }
             }
             .padding()
+        }
+        .alert("Impossibile salvare", isPresented: Binding(
+            get: { !errorMessage.isEmpty },
+            set: { if !$0 { errorMessage = "" } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
         }
     }
 
@@ -47,20 +60,34 @@ struct SceltaAttivitaView: View {
 
     // MARK: - SALVA + CAMBIA TEMA
     private func salva(tipo: String) {
+        guard let userID = session.user?.uid else {
+            errorMessage = "Sessione non valida. Accedi nuovamente."
+            return
+        }
 
-        let profilo = ProfiloAttivita(
-            nome: "",
-            telefono: "",
-            indirizzo: "",
-            email: "",
-            orari: "",
-            tipoAttivita: tipo
-        )
+        let profiliUtente = profili.filter { $0.ownerID == userID }
+        if let profilo = profiliUtente.first {
+            profilo.tipoAttivita = tipo
+            for duplicato in profiliUtente.dropFirst() {
+                context.delete(duplicato)
+            }
+        } else {
+            context.insert(ProfiloAttivita(
+                ownerID: userID,
+                nome: "",
+                telefono: "",
+                indirizzo: "",
+                email: "",
+                orari: "",
+                tipoAttivita: tipo
+            ))
+        }
 
-        context.insert(profilo)
-        try? context.save()
-
-        // 🔥 aggiorna subito il tema
-        themeManager.aggiornaTema(tipo: tipo)
+        do {
+            try context.save()
+            themeManager.aggiornaTema(tipo: tipo)
+        } catch {
+            errorMessage = "Salvataggio non riuscito: \(error.localizedDescription)"
+        }
     }
 }
