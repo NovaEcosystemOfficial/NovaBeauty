@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Beauty & Souls</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: #f7f7f7;
+            color: #222;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+        }
+
+        nav a {
+            text-decoration: none;
+            margin-left: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .hero {
+            height: 90vh;
+            background: url('hero.jpg') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .hero-content {
+            max-width: 700px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: #5c6cff;
+            color: white;
+            padding: 14px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        section {
+            padding: 80px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 50px;
+            font-size: 32px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .features img {
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        .video-section {
+            background: white;
+        }
+
+        .video-container {
+            max-width: 300px;
+            margin: auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        video {
+            width: 100%;
+            display: block;
+        }
+
+        .cta {
+            text-align: center;
+            background: #ffffff;
+        }
+
+        .cta h2 {
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            background: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+
+        <nav>
+
+            <strong>Beauty & Souls</strong>
+
+            <div>
+                <a href="#funzioni">Funzionalità</a>
+                <a href="#video">App</a>
+                <a href="#chi">Per chi è</a>
+                <a href="#contatti">Contatti</a>
+            </div>
+
+        </nav>
+
+    </header>
+
+
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <h1>Beauty & Souls</h1>
+
+            <p>Il gestionale moderno per centri estetici e barber shop</p>
+
+            <a class="btn" href="#video">Guarda l'app</a>
+
+        </div>
+
+    </section>
+
+
+    <section id="video" class="video-section">
+
+        <div class="container">
+
+            <h2>Guarda Beauty & Souls in azione</h2>
+
+            <div class="video-container">
+
+                <video controls autoplay muted loop>
+
+                    <source src="demo.mp4" type="video/mp4">
+
+                </video>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section id="chi">
+
+        <div class="container">
+
+            <div class="features">
+
+                <img src="beauty-logo.jpg">
+
+                <div>
+
+                    <h3>Per Centri Estetici</h3>
+
+                    <p>
+                        Gestisci appuntamenti, clienti e incassi direttamente dal tuo telefono.
+                        Beauty Souls semplifica il lavoro dei centri estetici organizzando l'agenda e le prenotazioni.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <br><br><br>
+
+            <div class="features">
+
+                <div>
+
+                    <h3>Per Barber Shop e Parrucchieri</h3>
+
+                    <p>
+                        Controlla la tua agenda giornaliera, gestisci i clienti e organizza i servizi
+                        in modo semplice e veloce. Beauty Souls è pensato per aiutarti a gestire il tuo salone senza
+                        stress.
+                    </p>
+
+                </div>
+
+                <img src="barber.jpg">
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section id="funzioni">
+
+        <div class="container">
+
+            <h2>Funzionalità principali</h2>
+
+            <div class="features">
+
+                <div>
+
+                    <h3>Agenda intelligente</h3>
+                    <p>Organizza tutti gli appuntamenti in pochi secondi.</p>
+
+                    <h3>Gestione clienti</h3>
+                    <p>Salva i dati dei clienti e tieni traccia dei servizi.</p>
+
+                    <h3>Prenotazioni online</h3>
+                    <p>I clienti possono prenotare direttamente dal sito.</p>
+
+                </div>
+
+                <div>
+
+                    <h3>Statistiche incassi</h3>
+                    <p>Controlla l'andamento del tuo salone.</p>
+
+                    <h3>Promemoria automatici</h3>
+                    <p>Riduci le assenze dei clienti.</p>
+
+                    <h3>Facile da usare</h3>
+                    <p>Interfaccia semplice pensata per i professionisti.</p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="cta">
+
+        <div class="container">
+
+            <h2>Prova Beauty & Souls</h2>
+
+            <p>14 giorni gratuiti al lancio</p>
+
+            <br>
+
+            <a class="btn" href="#contatti">Inizia ora</a>
+
+        </div>
+
+    </section>
+
+
+    <section id="contatti">
+
+        <div class="container" style="text-align:center">
+
+            <h2>Contattaci</h2>
+
+            <p>Vuoi provare Beauty & Souls nel tuo salone?</p>
+
+            <br>
+
+            <a class="btn" href="https://wa.me/393296951799">Scrivici su WhatsApp</a>
+
+            <br><br>
+
+            <p>Oppure scrivi a:</p>
+
+            <p><strong>carrotech.official@gmail.com</strong></p>
+
+        </div>
+
+    </section>
+
+
+    <footer>
+
+        © 2026 Beauty & Souls
+
+    </footer>
+
+</body>
+
+</html>
