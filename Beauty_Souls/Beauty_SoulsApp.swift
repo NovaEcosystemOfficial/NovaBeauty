@@ -1,32 +1,34 @@
-//
-//  Beauty_SoulsApp.swift
-//  Beauty_Souls
-//
-//  Created by fabio di cesare on 25/02/26.
-//
-
 import SwiftUI
 import SwiftData
+import UserNotifications
+import FirebaseCore
 
 @main
 struct Beauty_SoulsApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+    
+    @StateObject var theme = ThemeManager()
+    
+    init() {
+        FirebaseApp.configure()
+        
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("Permesso notifiche concesso")
+            }
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashView()
+                .environmentObject(theme)
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(for: [
+            Cliente.self,
+            Appuntamento.self,
+            ProdottoMagazzino.self,
+            ProfiloAttivita.self,
+            Servizio.self
+        ])
     }
 }

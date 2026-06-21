@@ -1,61 +1,62 @@
-//
-//  ContentView.swift
-//  Beauty_Souls
-//
-//  Created by fabio di cesare on 25/02/26.
-//
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @EnvironmentObject var themeManager: ThemeManager
+    @Query private var profili: [ProfiloAttivita]   // 👈 IMPORTANTISSIMO
+
+    private var haTipoAttivita: Bool {
+        profili.contains { !$0.tipoAttivita.isEmpty }
+    }
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+
+        if !haTipoAttivita {
+
+            // 🔥 SCHERMATA INIZIALE
+            SceltaAttivitaView()
+
+        } else {
+
+            // 🔥 APP NORMALE
+            TabView {
+
+                DashboardView()
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
                     }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+
+                AgendaView()
+                    .tabItem {
+                        Label("Agenda", systemImage: "calendar")
                     }
-                }
+
+                ClientiView()
+                    .tabItem {
+                        Label("Clienti", systemImage: "person.3.fill")
+                    }
+
+                ServiziView()
+                    .tabItem {
+                        Label("Servizi", systemImage: "scissors")
+                    }
+
+                StatisticheView()
+                    .tabItem {
+                        Label("Statistiche", systemImage: "chart.bar.fill")
+                    }
+
+                MagazzinoView()
+                    .tabItem {
+                        Label("Magazzino", systemImage: "shippingbox.fill")
+                    }
+
+                ProfiloView()
+                    .tabItem {
+                        Label("Profilo", systemImage: "person.crop.circle.fill")
+                    }
             }
-        } detail: {
-            Text("Select an item")
+            .tint(themeManager.theme.primary)
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
