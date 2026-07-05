@@ -28,6 +28,7 @@ export type ProfileDocument = {
   phone: string;
   address: string;
   email: string;
+  ownerName: string;
   displayName: string;
   openingHours: string;
   description: string;
@@ -43,6 +44,7 @@ export type ClientDocument = {
   syncId: string;
   name: string;
   phone: string;
+  email: string;
   notes: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
