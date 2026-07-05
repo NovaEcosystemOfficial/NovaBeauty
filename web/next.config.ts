@@ -16,7 +16,6 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  serverExternalPackages: ["firebase-admin"],
   webpack(config) {
     config.cache = false;
     return config;
