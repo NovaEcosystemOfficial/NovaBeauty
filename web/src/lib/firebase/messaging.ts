@@ -50,6 +50,28 @@ export async function requestNotificationPermissionAndSaveToken(userId: string) 
   return token;
 }
 
+export async function refreshMessagingTokenIfGranted(userId: string) {
+  const supported = await isMessagingAvailable();
+
+  if (!supported || Notification.permission !== "granted") {
+    return null;
+  }
+
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  const messaging = getMessaging(firebaseApp);
+  const token = await getToken(messaging, {
+    vapidKey,
+    serviceWorkerRegistration: registration
+  });
+
+  if (!token) {
+    return null;
+  }
+
+  await saveMessagingToken(userId, token);
+  return token;
+}
+
 export async function subscribeToForegroundMessages(handler: (payload: MessagePayload) => void) {
   const supported = await isMessagingAvailable();
 

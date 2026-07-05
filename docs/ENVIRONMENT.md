@@ -31,6 +31,9 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
 `.env.local` contiene i valori locali reali e non deve mai essere committato.
@@ -47,7 +50,14 @@ Queste variabili configurano il Firebase Web SDK:
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
 - `NEXT_PUBLIC_FIREBASE_VAPID_KEY` opzionale per abilitare Firebase Cloud Messaging web push
 
+Variabili server-side per inviare push reali tramite Firebase Admin SDK:
+
+- `FIREBASE_ADMIN_PROJECT_ID`
+- `FIREBASE_ADMIN_CLIENT_EMAIL`
+- `FIREBASE_ADMIN_PRIVATE_KEY`
+
 Il prefisso `NEXT_PUBLIC_` e' necessario per rendere la configurazione disponibile al client Next.js.
+Le variabili `FIREBASE_ADMIN_*` non devono avere prefisso `NEXT_PUBLIC_` e non devono mai essere esposte al browser.
 
 ## Firebase Cloud Messaging
 
@@ -67,6 +77,17 @@ Per NovaBeauty questa variabile abilita:
 - notifiche foreground e background
 
 Se la variabile non e' configurata, la PWA resta funzionante ma le notifiche push non vengono abilitate.
+
+Per inviare notifiche push reali dal server, NovaBeauty usa Firebase Admin SDK con:
+
+```env
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+```
+
+`FIREBASE_ADMIN_PRIVATE_KEY` deve essere configurata su Vercel conservando i newline come `\n` oppure come valore multilinea supportato dal provider.
+Queste variabili servono all'endpoint server `/api/notifications/test-push` e non vengono validate da `env:check` per non bloccare ambienti che non inviano push server-side.
 
 ## Configurare un nuovo progetto Nova
 

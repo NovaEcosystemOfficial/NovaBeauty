@@ -7,10 +7,12 @@ import {
   Check,
   Megaphone,
   MonitorCog,
+  Send,
   PiggyBank,
   ShieldCheck,
   UserRound
 } from "lucide-react";
+import { getIdTokenResult } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
@@ -70,6 +72,8 @@ export function NotificationsCenter() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnablingPush, setIsEnablingPush] = useState(false);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
+  const [canSendTestPush, setCanSendTestPush] = useState(process.env.NODE_ENV === "development");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -103,6 +107,28 @@ export function NotificationsCenter() {
     );
 
     return unsubscribe;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setCanSendTestPush(process.env.NODE_ENV === "development");
+      return;
+    }
+
+    getIdTokenResult(user)
+      .then((tokenResult) => {
+        setCanSendTestPush(
+          process.env.NODE_ENV === "development" ||
+            tokenResult.claims.admin === true ||
+            tokenResult.claims.novaAdmin === true
+        );
+      })
+      .catch((claimsError) => {
+        console.error("Admin claim check failed", {
+          message: claimsError instanceof Error ? claimsError.message : "Errore sconosciuto"
+        });
+        setCanSendTestPush(process.env.NODE_ENV === "development");
+      });
   }, [user]);
 
   async function handleEnablePush() {
@@ -144,6 +170,42 @@ export function NotificationsCenter() {
     }
   }
 
+  async function handleSendTestPush() {
+    if (!user) {
+      return;
+    }
+
+    setIsSendingTestPush(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch("/api/notifications/test-push", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${idToken}`
+        }
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Invio non riuscito.");
+      }
+
+      setSuccess("Notifica di test inviata.");
+      showToast("Notifica di test inviata.");
+    } catch (sendError) {
+      console.error("Test push request failed", {
+        message: sendError instanceof Error ? sendError.message : "Errore sconosciuto"
+      });
+      setError(sendError instanceof Error ? sendError.message : "Non siamo riusciti a inviare la notifica di test.");
+      showToast("Notifica di test non inviata.", "error");
+    } finally {
+      setIsSendingTestPush(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <Card className="space-y-4">
@@ -157,10 +219,18 @@ export function NotificationsCenter() {
               </p>
             </div>
           </div>
-          <PrimaryButton type="button" onClick={handleEnablePush} disabled={isEnablingPush}>
-            <ShieldCheck className="size-5" aria-hidden="true" />
-            {isEnablingPush ? "Attivazione..." : "Abilita push"}
-          </PrimaryButton>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <PrimaryButton type="button" onClick={handleEnablePush} disabled={isEnablingPush}>
+              <ShieldCheck className="size-5" aria-hidden="true" />
+              {isEnablingPush ? "Attivazione..." : "Abilita push"}
+            </PrimaryButton>
+            {canSendTestPush ? (
+              <SecondaryButton type="button" onClick={handleSendTestPush} disabled={isSendingTestPush}>
+                <Send className="size-5" aria-hidden="true" />
+                {isSendingTestPush ? "Invio..." : "Invia notifica di test"}
+              </SecondaryButton>
+            ) : null}
+          </div>
         </div>
         {error ? <ErrorMessage message={error} /> : null}
         {success ? <SuccessMessage message={success} /> : null}

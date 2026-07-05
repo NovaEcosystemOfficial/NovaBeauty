@@ -107,6 +107,25 @@ novabeautyUsers/{uid}/messagingTokens/{tokenId}
 
 Le notifiche automatiche server-side future dovranno leggere questi token senza spostarli in `users/{uid}`.
 
+### Invio Push FCM
+
+L'invio push reale deve avvenire solo lato server con Firebase Admin SDK.
+
+NovaBeauty espone un endpoint protetto per test manuale:
+
+```text
+POST /api/notifications/test-push
+```
+
+Requisiti:
+
+- Authorization header con Firebase ID token dell'utente autenticato
+- ambiente development oppure custom claim `admin=true` o `novaAdmin=true`
+- token FCM gia' salvato in `novabeautyUsers/{uid}/messagingTokens`
+- variabili server `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`
+
+L'endpoint non deve loggare token FCM, private key o ID token.
+
 ## Firestore Rules
 
 Principio base:

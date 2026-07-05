@@ -85,6 +85,8 @@ Le regole Storage devono verificare `request.auth.uid`.
 - Non usare `allow read, write: if true`.
 - Non salvare dati di app in `users/{uid}`.
 - Salvare token push e notifiche solo nel namespace app-specifico dell'utente.
+- Inviare push FCM solo lato server con Firebase Admin SDK.
+- Non esporre service account, private key, ID token o token FCM nei log o nel client.
 - Non cancellare namespace legacy senza migrazione.
 - Non deployare rules senza dry-run.
 - Non introdurre env senza documentazione.
