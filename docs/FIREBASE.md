@@ -98,7 +98,7 @@ Campi standard:
   lastVisit: Timestamp | null,
   appointmentsCount: number,
   totalSpent: number,
-  source: "manual" | "contacts",
+  source: "manual" | "contacts" | "vcard",
   createdAt: Timestamp,
   updatedAt: Timestamp
 }

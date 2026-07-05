@@ -11,8 +11,8 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { Contact, Edit3, Plus, Search, Trash2, Upload, X } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Contact, Edit3, FileUp, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { DangerButton } from "@/components/ui/DangerButton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -54,6 +54,8 @@ type ContactPreview = {
   surname: string;
   phone: string;
   email: string;
+  notes: string;
+  source: "contacts" | "vcard";
   duplicate: boolean;
 };
 
@@ -76,6 +78,102 @@ function splitFullName(fullName: string) {
     name: parts[0] ?? "",
     surname: parts.slice(1).join(" ")
   };
+}
+
+function unfoldVcardLines(content: string) {
+  return content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").reduce<string[]>((lines, line) => {
+    if (/^[ \t]/.test(line) && lines.length) {
+      lines[lines.length - 1] += line.slice(1);
+      return lines;
+    }
+
+    lines.push(line);
+    return lines;
+  }, []);
+}
+
+function unescapeVcardValue(value: string) {
+  return value
+    .replace(/\\n/gi, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function getVcardFieldName(line: string) {
+  const separatorIndex = line.indexOf(":");
+  if (separatorIndex < 0) {
+    return "";
+  }
+
+  return line.slice(0, separatorIndex).split(";")[0].toUpperCase();
+}
+
+function getVcardFieldValue(line: string) {
+  const separatorIndex = line.indexOf(":");
+  if (separatorIndex < 0) {
+    return "";
+  }
+
+  return unescapeVcardValue(line.slice(separatorIndex + 1));
+}
+
+function parseVcardContacts(content: string) {
+  const lines = unfoldVcardLines(content);
+  const cards: string[][] = [];
+  let currentCard: string[] = [];
+
+  lines.forEach((line) => {
+    const fieldName = getVcardFieldName(line);
+    if (fieldName === "BEGIN" && getVcardFieldValue(line).toUpperCase() === "VCARD") {
+      currentCard = [];
+      return;
+    }
+
+    if (fieldName === "END" && getVcardFieldValue(line).toUpperCase() === "VCARD") {
+      if (currentCard.length) {
+        cards.push(currentCard);
+      }
+      currentCard = [];
+      return;
+    }
+
+    if (currentCard) {
+      currentCard.push(line);
+    }
+  });
+
+  return cards
+    .map((card, index) => {
+      const fullName = getVcardFieldValue(card.find((line) => getVcardFieldName(line) === "FN") ?? "");
+      const structuredName = getVcardFieldValue(card.find((line) => getVcardFieldName(line) === "N") ?? "");
+      const phone = getVcardFieldValue(card.find((line) => getVcardFieldName(line) === "TEL") ?? "");
+      const email = getVcardFieldValue(card.find((line) => getVcardFieldName(line) === "EMAIL") ?? "");
+      const notes = getVcardFieldValue(card.find((line) => getVcardFieldName(line) === "NOTE") ?? "");
+
+      const nameParts = structuredName.split(";").map((part) => part.trim());
+      const fromStructuredName = {
+        name: [nameParts[1], nameParts[2]].filter(Boolean).join(" "),
+        surname: nameParts[0] ?? ""
+      };
+      const fromFullName = splitFullName(fullName);
+      const name = fromStructuredName.name || fromFullName.name || fullName || "Contatto";
+      const surname = fromStructuredName.surname || fromFullName.surname;
+
+      return {
+        id: `vcard-${index}-${phone}-${email}-${name}`,
+        selected: true,
+        name,
+        surname,
+        phone,
+        email,
+        notes,
+        source: "vcard" as const,
+        duplicate: false
+      };
+    })
+    .filter((contact) => contact.name || contact.phone || contact.email);
 }
 
 function formatDate(value: ClientDocument["lastVisit"] | ClientDocument["createdAt"]) {
@@ -109,9 +207,12 @@ export function ClientsManager() {
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("name");
   const [contactImportError, setContactImportError] = useState("");
+  const [contactImportNotice, setContactImportNotice] = useState("");
   const [contactPreview, setContactPreview] = useState<ContactPreview[]>([]);
+  const [isReadingVcard, setIsReadingVcard] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const vcardInputRef = useRef<HTMLInputElement>(null);
 
   const clientsCollectionPath = useMemo(() => (user ? clientsPath(user.uid) : null), [user]);
   const isEditing = Boolean(editingClientId);
@@ -314,6 +415,7 @@ export function ClientsManager() {
 
   async function handleContactImport() {
     setContactImportError("");
+    setContactImportNotice("");
 
     const contactsApi = (navigator as Navigator & {
       contacts?: {
@@ -322,7 +424,7 @@ export function ClientsManager() {
     }).contacts;
 
     if (!contactsApi?.select) {
-      setContactImportError("Il tuo dispositivo non supporta l'importazione diretta dei contatti.");
+      setContactImportNotice("Il tuo dispositivo non supporta l'importazione diretta dei contatti. Usa Importa vCard (.vcf).");
       return;
     }
 
@@ -341,6 +443,8 @@ export function ClientsManager() {
           surname: splitName.surname,
           phone,
           email,
+          notes: "",
+          source: "contacts" as const,
           duplicate: hasDuplicate(phone, email)
         };
       });
@@ -349,6 +453,45 @@ export function ClientsManager() {
     } catch (importError) {
       console.error("Contact import failed", importError);
       setContactImportError("Importazione contatti annullata o non disponibile.");
+    }
+  }
+
+  async function handleVcardFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsReadingVcard(true);
+    setContactImportError("");
+    setContactImportNotice("");
+    setSuccess("");
+
+    try {
+      const text = await file.text();
+      const parsedContacts = parseVcardContacts(text).map((contact) => ({
+        ...contact,
+        selected: !hasDuplicate(contact.phone, contact.email),
+        duplicate: hasDuplicate(contact.phone, contact.email)
+      }));
+
+      if (!parsedContacts.length) {
+        setContactImportError("Nessun contatto valido trovato nel file vCard selezionato.");
+        showToast("Nessun contatto valido trovato.", "error");
+        return;
+      }
+
+      setContactPreview(parsedContacts);
+      setContactImportNotice("I contatti vengono letti dal file selezionato e salvati solo dopo la tua conferma.");
+      showToast("File vCard letto correttamente.");
+    } catch (vcardError) {
+      console.error("vCard import failed", vcardError);
+      setContactImportError("Non siamo riusciti a leggere il file vCard selezionato.");
+      showToast("Importazione vCard non completata.", "error");
+    } finally {
+      setIsReadingVcard(false);
+      event.target.value = "";
     }
   }
 
@@ -376,12 +519,12 @@ export function ClientsManager() {
             phone: contact.phone,
             email: contact.email,
             birthDate: null,
-            notes: null,
+            notes: contact.notes || null,
             photoUrl: null,
             lastVisit: null,
             appointmentsCount: 0,
             totalSpent: 0,
-            source: "contacts",
+            source: contact.source,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
@@ -403,6 +546,17 @@ export function ClientsManager() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[14px] text-beauty-muted">Anagrafica completa salvata nel namespace NovaBeauty.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            ref={vcardInputRef}
+            className="hidden"
+            type="file"
+            accept=".vcf,text/vcard,text/x-vcard"
+            onChange={handleVcardFileChange}
+          />
+          <SecondaryButton type="button" onClick={() => vcardInputRef.current?.click()} disabled={isReadingVcard}>
+            <FileUp size={18} aria-hidden="true" />
+            {isReadingVcard ? "Lettura..." : "Importa vCard (.vcf)"}
+          </SecondaryButton>
           <SecondaryButton type="button" onClick={handleContactImport}>
             <Upload size={18} aria-hidden="true" />
             Importa da rubrica
@@ -436,6 +590,7 @@ export function ClientsManager() {
         </select>
       </Card>
 
+      {contactImportNotice ? <Card className="text-[14px] leading-6 text-beauty-muted">{contactImportNotice}</Card> : null}
       {contactImportError ? <ErrorMessage message={contactImportError} /> : null}
 
       {contactPreview.length ? (
@@ -466,6 +621,7 @@ export function ClientsManager() {
                 <span className="min-w-0">
                   <span className="block font-semibold text-beauty-text">{`${contact.name} ${contact.surname}`.trim()}</span>
                   <span className="block text-[13px] text-beauty-muted">{[contact.phone, contact.email].filter(Boolean).join(" - ")}</span>
+                  {contact.notes ? <span className="mt-1 block text-[12px] text-beauty-subtle">{contact.notes}</span> : null}
                   {contact.duplicate ? <span className="text-[12px] text-beauty-danger">Duplicato rilevato</span> : null}
                 </span>
               </label>
