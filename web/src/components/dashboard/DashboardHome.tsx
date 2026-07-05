@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import {
+  Bell,
   CalendarPlus,
+  ChevronRight,
   CheckCircle2,
   Clock3,
   Euro,
+  FileUp,
   Gem,
   Scissors,
   Sparkles,
@@ -27,9 +30,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconBadge } from "@/components/ui/IconBadge";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { SecondaryButton } from "@/components/ui/SecondaryButton";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -306,110 +306,193 @@ export function DashboardHome() {
     return Array.from(counts.entries()).sort((first, second) => second[1] - first[1])[0]?.[0] || "";
   }, [state.weekAppointments]);
 
+  const nextAppointment = state.upcomingAppointments[0];
+  const pendingSetupCount = setupActions.filter((action) => !action.done).length;
+  const quickActions = [
+    {
+      label: "Appuntamento",
+      href: "/appointments",
+      icon: CalendarPlus,
+      tone: "primary" as const
+    },
+    {
+      label: "Cliente",
+      href: "/clients",
+      icon: Users,
+      tone: "mint" as const
+    },
+    {
+      label: "vCard",
+      href: "/clients",
+      icon: FileUp,
+      tone: "gold" as const
+    },
+    {
+      label: "Profilo",
+      href: "/profile",
+      icon: Store,
+      tone: "lavender" as const
+    }
+  ];
+  const appMetrics = [
+    {
+      label: "Oggi",
+      value: String(state.todayAppointments.length),
+      helper: state.todayAppointments.length ? "appuntamenti" : "agenda libera",
+      icon: Clock3,
+      tone: "primary" as const
+    },
+    {
+      label: "Clienti",
+      value: String(state.clients.length),
+      helper: state.clients.length ? "schede salvate" : "da aggiungere",
+      icon: Users,
+      tone: "mint" as const
+    },
+    {
+      label: "Incasso",
+      value: formatCurrency(todayRevenue),
+      helper: "oggi",
+      icon: Euro,
+      tone: "gold" as const
+    },
+    {
+      label: "Settimana",
+      value: formatCurrency(weekRevenue),
+      helper: topService || "nessun servizio top",
+      icon: Gem,
+      tone: "lavender" as const
+    }
+  ];
+
   return (
-    <div className="space-y-8 animate-fade-up">
-      <section className="relative overflow-hidden rounded-beauty-xl border border-beauty-border/70 bg-beauty-elevated/90 p-5 shadow-beauty-floating backdrop-blur sm:p-7">
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-beauty-border/70 bg-beauty-surface/75 px-3 py-1.5 text-[12px] font-semibold text-beauty-muted shadow-beauty-soft">
-              <Sparkles aria-hidden="true" className="size-4 text-beauty-primary" />
-              Studio estetico
-            </div>
-            <div>
-              {loadingSections.profile ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-10 w-full max-w-xl" />
-                </div>
-              ) : (
-                <>
-                  <p className="text-[15px] font-medium text-beauty-muted">{greeting}</p>
-                  <h1 className="mt-1 text-[34px] font-bold leading-[1.05] tracking-normal text-beauty-text sm:text-[44px]">
-                    {profileTitle}
-                  </h1>
-                </>
-              )}
-            </div>
-            <p className="max-w-xl text-[15px] leading-6 text-beauty-muted">
-              La dashboard mostra solo dati reali salvati su Firestore. Se una sezione e&apos; vuota, trovi il prossimo passo per attivarla.
-            </p>
+    <div className="mx-auto max-w-[430px] space-y-5 pb-4 animate-fade-up lg:max-w-6xl lg:space-y-7">
+      <header className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid size-12 shrink-0 place-items-center rounded-[18px] bg-beauty-primary text-[18px] font-black text-white shadow-beauty">
+            N
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/appointments">
-              <PrimaryButton type="button">
-                <CalendarPlus aria-hidden="true" className="size-5" />
-                Nuovo appuntamento
-              </PrimaryButton>
-            </Link>
-            <Link href="/profile">
-              <SecondaryButton type="button">
-                <Store aria-hidden="true" className="size-5" />
-                Profilo
-              </SecondaryButton>
-            </Link>
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-beauty-muted">NovaBeauty</p>
+            {loadingSections.profile ? (
+              <Skeleton className="mt-2 h-5 w-40" />
+            ) : (
+              <h1 className="truncate text-[22px] font-bold leading-tight text-beauty-text">{profileTitle}</h1>
+            )}
           </div>
         </div>
-      </section>
+        <Link
+          href="/notifications"
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-beauty-border/80 bg-beauty-elevated shadow-beauty-soft transition active:scale-95"
+          aria-label="Apri notifiche"
+        >
+          <Bell aria-hidden="true" className="size-5 text-beauty-text" />
+        </Link>
+      </header>
 
       {error ? (
         <Card className="border-beauty-danger/30 text-[14px] text-beauty-danger">{error}</Card>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
-          </>
-        ) : (
-          <>
-            <MetricCard
-              icon={Clock3}
-              label="Appuntamenti oggi"
-              value={String(state.todayAppointments.length)}
-              helper={state.todayAppointments.length ? "Dati letti dalla tua agenda" : "Nessun appuntamento programmato oggi"}
-            />
-            <MetricCard
-              icon={Users}
-              label="Clienti"
-              value={String(state.clients.length)}
-              helper={state.clients.length ? "Schede cliente salvate" : "Aggiungi il primo cliente"}
-              tone="mint"
-            />
-            <MetricCard
-              icon={Euro}
-              label="Incasso oggi"
-              value={formatCurrency(todayRevenue)}
-              helper={todayRevenue ? "Solo appuntamenti completati" : "Nessun incasso completato oggi"}
-              tone="gold"
-            />
-            <MetricCard
-              icon={Gem}
-              label="Incasso settimana"
-              value={formatCurrency(weekRevenue)}
-              helper={weekRevenue ? "Calcolato dagli appuntamenti completati" : "Nessun incasso settimanale"}
-              tone="lavender"
-            />
-            <MetricCard
-              icon={Scissors}
-              label="Servizio top"
-              value={topService || "-"}
-              helper={topService ? "Basato sugli appuntamenti della settimana" : "Dati insufficienti"}
-              tone="lavender"
-            />
-          </>
-        )}
+      <section className="overflow-hidden rounded-[28px] border border-beauty-border/70 bg-beauty-elevated/95 p-5 shadow-beauty-floating backdrop-blur lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-6 lg:p-7">
+        <div className="space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium text-beauty-muted">{greeting}</p>
+              <h2 className="mt-2 text-[34px] font-black leading-none text-beauty-text sm:text-[42px]">Oggi</h2>
+            </div>
+            <div className="rounded-full bg-beauty-primary/12 px-3 py-1.5 text-[12px] font-bold text-beauty-primary">
+              {pendingSetupCount ? `${pendingSetupCount} step` : "Pronta"}
+            </div>
+          </div>
+
+          {loadingSections.todayAppointments ? (
+            <Skeleton className="h-28" />
+          ) : nextAppointment ? (
+            <Link
+              href="/appointments"
+              className="group flex items-center gap-4 rounded-[24px] bg-beauty-card/85 p-4 transition active:scale-[0.99] lg:max-w-xl"
+            >
+              <div className="grid size-16 shrink-0 place-items-center rounded-[22px] bg-beauty-primary text-[16px] font-black text-white shadow-beauty">
+                {formatAppointmentTime(nextAppointment.date)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[17px] font-bold text-beauty-text">
+                  {nextAppointment.clientNameSnapshot || "Cliente"}
+                </p>
+                <p className="mt-1 truncate text-[13px] text-beauty-muted">
+                  {formatAppointmentDay(nextAppointment.date)} - {nextAppointment.serviceName || "Servizio"}
+                </p>
+              </div>
+              <ChevronRight aria-hidden="true" className="size-5 text-beauty-muted transition group-hover:translate-x-0.5" />
+            </Link>
+          ) : (
+            <div className="rounded-[24px] bg-beauty-card/85 p-4">
+              <p className="text-[17px] font-bold text-beauty-text">Nessun appuntamento in agenda</p>
+              <p className="mt-1 text-[13px] leading-5 text-beauty-muted">Crea il primo appuntamento quando lo studio e pronto.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
+            <div className="rounded-[22px] bg-beauty-primary/10 p-4">
+              <p className="text-[12px] font-semibold text-beauty-muted">Incasso oggi</p>
+              <p className="mt-2 text-[24px] font-black leading-none text-beauty-text">{formatCurrency(todayRevenue)}</p>
+            </div>
+            <div className="rounded-[22px] bg-beauty-mint/10 p-4">
+              <p className="text-[12px] font-semibold text-beauty-muted">Clienti</p>
+              <p className="mt-2 text-[24px] font-black leading-none text-beauty-text">{state.clients.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:mt-0">
+          {quickActions.map((action) => (
+            <Link
+              key={action.label}
+              href={action.href}
+              className="flex items-center justify-between rounded-[22px] border border-beauty-border/60 bg-beauty-surface/70 p-3 shadow-beauty-soft transition hover:-translate-y-0.5 active:scale-[0.99]"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <IconBadge icon={action.icon} tone={action.tone} />
+                <span className="truncate text-[15px] font-bold text-beauty-text">{action.label}</span>
+              </span>
+              <ChevronRight aria-hidden="true" className="size-5 text-beauty-muted" />
+            </Link>
+          ))}
+        </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
-        <div className="space-y-6">
+      <section className="-mx-beauty-page overflow-x-auto px-beauty-page pb-1 sm:mx-0 sm:px-0">
+        <div className="flex snap-x gap-3 lg:grid lg:grid-cols-4">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-28 min-w-[160px] snap-start rounded-[24px] lg:min-w-0" />
+            <Skeleton className="h-28 min-w-[160px] snap-start rounded-[24px] lg:min-w-0" />
+            <Skeleton className="h-28 min-w-[160px] snap-start rounded-[24px] lg:min-w-0" />
+            <Skeleton className="h-28 min-w-[160px] snap-start rounded-[24px] lg:min-w-0" />
+          </>
+        ) : (
+          appMetrics.map((metric) => (
+            <article
+              key={metric.label}
+              className="min-w-[160px] snap-start rounded-[24px] border border-beauty-border/70 bg-beauty-elevated/90 p-4 shadow-beauty-soft backdrop-blur lg:min-w-0"
+            >
+              <IconBadge icon={metric.icon} tone={metric.tone} />
+              <p className="mt-4 text-[12px] font-semibold text-beauty-muted">{metric.label}</p>
+              <p className="mt-1 truncate text-[24px] font-black leading-none text-beauty-text">{metric.value}</p>
+              <p className="mt-2 truncate text-[12px] text-beauty-subtle">{metric.helper}</p>
+            </article>
+          ))
+        )}
+        </div>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-7">
+        <div className="space-y-5 lg:space-y-7">
           <section className="space-y-3">
-            <SectionHeader title="Agenda di oggi" caption="Solo appuntamenti reali salvati in Firestore" />
+            <SectionHeader title="Agenda" caption="Oggi" />
             {loadingSections.todayAppointments ? (
-              <Card>
+              <Card className="rounded-[24px]">
                 <Skeleton className="h-16" />
               </Card>
             ) : state.todayAppointments.length ? (
@@ -417,9 +500,9 @@ export function DashboardHome() {
                 {state.todayAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex items-center gap-3 rounded-beauty border border-beauty-border/60 bg-beauty-surface/70 p-3"
+                    className="flex items-center gap-3 rounded-[24px] border border-beauty-border/60 bg-beauty-surface/70 p-3 shadow-beauty-soft"
                   >
-                    <div className="grid h-12 w-14 shrink-0 place-items-center rounded-beauty bg-beauty-primary/12 text-[13px] font-bold text-beauty-primary">
+                    <div className="grid h-12 w-14 shrink-0 place-items-center rounded-[18px] bg-beauty-primary/12 text-[13px] font-bold text-beauty-primary">
                       {formatAppointmentTime(appointment.date)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -434,19 +517,19 @@ export function DashboardHome() {
             ) : (
               <EmptyState
                 title="Nessun appuntamento oggi"
-                description="Quando programmerai appuntamenti reali, appariranno qui automaticamente."
+                description="Quando programmerai appuntamenti reali, appariranno qui."
               />
             )}
           </section>
 
           <section className="space-y-3">
-            <SectionHeader title="Primi passi" caption="Checklist reale per rendere operativo lo studio" />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <SectionHeader title="Primi passi" caption={pendingSetupCount ? `${pendingSetupCount} azioni aperte` : "Setup completo"} />
+            <div className="-mx-beauty-page flex snap-x gap-3 overflow-x-auto px-beauty-page pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0">
               {setupActions.map((action) => (
                 <Link
                   key={action.title}
                   href={action.href}
-                  className="group flex min-h-24 w-full items-start gap-3 rounded-beauty-lg border border-beauty-border/70 bg-beauty-elevated/80 p-4 text-left shadow-beauty-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-beauty"
+                  className="group flex min-h-28 min-w-[250px] snap-start items-start gap-3 rounded-[24px] border border-beauty-border/70 bg-beauty-elevated/80 p-4 text-left shadow-beauty-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-beauty sm:min-w-0"
                 >
                   <IconBadge icon={action.done ? CheckCircle2 : Sparkles} tone={action.done ? "mint" : "primary"} />
                   <span className="min-w-0">
@@ -459,8 +542,8 @@ export function DashboardHome() {
           </section>
         </div>
 
-        <aside className="space-y-6">
-          <Card className="space-y-4">
+        <aside className="space-y-5 lg:space-y-7">
+          <Card className="space-y-4 rounded-[24px]">
             <div className="flex items-start gap-3">
               <IconBadge icon={UserRound} tone="primary" />
               <div>
@@ -477,8 +560,8 @@ export function DashboardHome() {
             </div>
           </Card>
 
-          <Card className="space-y-4">
-            <SectionHeader title="Prossimi appuntamenti" caption="Solo prenotazioni future reali" />
+          <Card className="space-y-4 rounded-[24px]">
+            <SectionHeader title="Prossimi" caption="Prenotazioni future" />
             {loadingSections.upcomingAppointments ? (
               <Skeleton className="h-20" />
             ) : state.upcomingAppointments.length ? (
@@ -497,12 +580,12 @@ export function DashboardHome() {
             ) : (
               <EmptyState
                 title="Nessuna prenotazione futura"
-                description="La lista si aggiornera' quando l'agenda sara' popolata con dati reali."
+                description="La lista si aggiornera quando l'agenda sara popolata con dati reali."
               />
             )}
           </Card>
 
-          <Card className="space-y-3">
+          <Card className="space-y-3 rounded-[24px]">
             <div className="flex items-start gap-3">
               <IconBadge icon={Scissors} tone="gold" />
               <div>
