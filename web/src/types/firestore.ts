@@ -43,9 +43,16 @@ export type ClientDocument = {
   ownerId: string;
   syncId: string;
   name: string;
+  surname: string;
   phone: string;
   email: string;
+  birthDate: string | null;
   notes: string | null;
+  photoUrl: string | null;
+  lastVisit: Timestamp | null;
+  appointmentsCount: number;
+  totalSpent: number;
+  source: "manual" | "contacts";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -81,6 +88,11 @@ export type AppointmentDocument = {
   serviceName: string;
   serviceId: string | null;
   price: number;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  notes: string | null;
+  status: "Prenotato" | "Confermato" | "Completato" | "Annullato";
   reminderMinutes: number;
   notificationIdentifier: string | null;
   createdAt: Timestamp;

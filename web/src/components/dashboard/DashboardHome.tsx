@@ -5,6 +5,7 @@ import {
   CalendarPlus,
   CheckCircle2,
   Clock3,
+  Euro,
   Gem,
   Scissors,
   Sparkles,
@@ -45,6 +46,7 @@ type DashboardState = {
   clients: ClientDocument[];
   services: ServiceDocument[];
   todayAppointments: DashboardAppointment[];
+  weekAppointments: DashboardAppointment[];
   upcomingAppointments: DashboardAppointment[];
 };
 
@@ -53,6 +55,7 @@ const initialDashboardState: DashboardState = {
   clients: [],
   services: [],
   todayAppointments: [],
+  weekAppointments: [],
   upcomingAppointments: []
 };
 
@@ -66,6 +69,22 @@ function startOfTomorrow() {
   const date = startOfToday();
   date.setDate(date.getDate() + 1);
   return date;
+}
+
+function startOfWeek() {
+  const date = startOfToday();
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0
+  }).format(value);
 }
 
 function formatAppointmentTime(timestamp: Timestamp) {
@@ -91,6 +110,7 @@ export function DashboardHome() {
     clients: true,
     services: true,
     todayAppointments: true,
+    weekAppointments: true,
     upcomingAppointments: true
   });
   const [error, setError] = useState("");
@@ -123,13 +143,13 @@ export function DashboardHome() {
       },
       {
         title: "Crea il primo servizio",
-        description: "Prepara il catalogo trattamenti quando la sezione sara' attiva.",
+        description: "Prepara il catalogo trattamenti per l'agenda.",
         href: "/services",
         done: state.services.length > 0
       },
       {
         title: "Programma il primo appuntamento",
-        description: "Collega agenda e servizi quando la sezione sara' attiva.",
+        description: "Collega cliente, servizio e orario in agenda.",
         href: "/appointments",
         done: state.upcomingAppointments.length > 0 || state.todayAppointments.length > 0
       }
@@ -145,6 +165,7 @@ export function DashboardHome() {
     setError("");
     const todayStart = Timestamp.fromDate(startOfToday());
     const tomorrowStart = Timestamp.fromDate(startOfTomorrow());
+    const weekStart = Timestamp.fromDate(startOfWeek());
 
     const unsubscribers = [
       onSnapshot(
@@ -232,6 +253,24 @@ export function DashboardHome() {
           setError("Non siamo riusciti ad aggiornare la dashboard. Riprova tra poco.");
           setLoadingSections((current) => ({ ...current, upcomingAppointments: false }));
         }
+      ),
+      onSnapshot(
+        query(collection(db, appointmentsPath(user.uid)), where("date", ">=", weekStart), orderBy("date", "asc"), limit(200)),
+        (snapshot) => {
+          setState((current) => ({
+            ...current,
+            weekAppointments: snapshot.docs.map((appointmentDoc) => ({
+              id: appointmentDoc.id,
+              ...(appointmentDoc.data() as AppointmentDocument)
+            }))
+          }));
+          setLoadingSections((current) => ({ ...current, weekAppointments: false }));
+        },
+        (snapshotError) => {
+          console.error("Dashboard week appointments subscription failed", snapshotError);
+          setError("Non siamo riusciti ad aggiornare la dashboard. Riprova tra poco.");
+          setLoadingSections((current) => ({ ...current, weekAppointments: false }));
+        }
       )
     ];
 
@@ -241,6 +280,31 @@ export function DashboardHome() {
   }, [user]);
 
   const isLoading = Object.values(loadingSections).some(Boolean);
+  const todayRevenue = useMemo(
+    () =>
+      state.todayAppointments
+        .filter((appointment) => appointment.status === "Completato")
+        .reduce((total, appointment) => total + (appointment.price || 0), 0),
+    [state.todayAppointments]
+  );
+  const weekRevenue = useMemo(
+    () =>
+      state.weekAppointments
+        .filter((appointment) => appointment.status === "Completato")
+        .reduce((total, appointment) => total + (appointment.price || 0), 0),
+    [state.weekAppointments]
+  );
+  const topService = useMemo(() => {
+    const counts = new Map<string, number>();
+    state.weekAppointments.forEach((appointment) => {
+      if (!appointment.serviceName) {
+        return;
+      }
+      counts.set(appointment.serviceName, (counts.get(appointment.serviceName) || 0) + 1);
+    });
+
+    return Array.from(counts.entries()).sort((first, second) => second[1] - first[1])[0]?.[0] || "";
+  }, [state.weekAppointments]);
 
   return (
     <div className="space-y-8 animate-fade-up">
@@ -271,10 +335,12 @@ export function DashboardHome() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <PrimaryButton type="button" className="pointer-events-none opacity-60">
-              <CalendarPlus aria-hidden="true" className="size-5" />
-              Agenda in arrivo
-            </PrimaryButton>
+            <Link href="/appointments">
+              <PrimaryButton type="button">
+                <CalendarPlus aria-hidden="true" className="size-5" />
+                Nuovo appuntamento
+              </PrimaryButton>
+            </Link>
             <Link href="/profile">
               <SecondaryButton type="button">
                 <Store aria-hidden="true" className="size-5" />
@@ -289,9 +355,10 @@ export function DashboardHome() {
         <Card className="border-beauty-danger/30 text-[14px] text-beauty-danger">{error}</Card>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {isLoading ? (
           <>
+            <Skeleton className="h-36" />
             <Skeleton className="h-36" />
             <Skeleton className="h-36" />
             <Skeleton className="h-36" />
@@ -313,17 +380,24 @@ export function DashboardHome() {
               tone="mint"
             />
             <MetricCard
-              icon={Gem}
-              label="Servizi"
-              value={String(state.services.length)}
-              helper={state.services.length ? "Servizi disponibili" : "Crea il primo servizio"}
+              icon={Euro}
+              label="Incasso oggi"
+              value={formatCurrency(todayRevenue)}
+              helper={todayRevenue ? "Solo appuntamenti completati" : "Nessun incasso completato oggi"}
               tone="gold"
             />
             <MetricCard
-              icon={CalendarPlus}
-              label="Prossimi appuntamenti"
-              value={String(state.upcomingAppointments.length)}
-              helper={state.upcomingAppointments.length ? "Appuntamenti futuri reali" : "Programma il primo appuntamento"}
+              icon={Gem}
+              label="Incasso settimana"
+              value={formatCurrency(weekRevenue)}
+              helper={weekRevenue ? "Calcolato dagli appuntamenti completati" : "Nessun incasso settimanale"}
+              tone="lavender"
+            />
+            <MetricCard
+              icon={Scissors}
+              label="Servizio top"
+              value={topService || "-"}
+              helper={topService ? "Basato sugli appuntamenti della settimana" : "Dati insufficienti"}
               tone="lavender"
             />
           </>

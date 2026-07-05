@@ -74,6 +74,73 @@ novabeautyUsers/{uid}/notifications/{notificationId}
 novabeautyUsers/{uid}/messagingTokens/{tokenId}
 ```
 
+### Clienti NovaBeauty
+
+Le schede clienti sono app-specifiche e restano nel namespace NovaBeauty:
+
+```text
+novabeautyUsers/{uid}/clients/{clientId}
+```
+
+Campi standard:
+
+```ts
+{
+  ownerId: string,
+  syncId: string,
+  name: string,
+  surname: string,
+  phone: string,
+  email: string,
+  birthDate: string | null,
+  notes: string | null,
+  photoUrl: string | null,
+  lastVisit: Timestamp | null,
+  appointmentsCount: number,
+  totalSpent: number,
+  source: "manual" | "contacts",
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+I duplicati vanno verificati lato app usando telefono normalizzato ed email.
+
+### Agenda NovaBeauty
+
+Gli appuntamenti sono salvati in:
+
+```text
+novabeautyUsers/{uid}/appointments/{appointmentId}
+```
+
+Campi standard:
+
+```ts
+{
+  ownerId: string,
+  syncId: string,
+  date: Timestamp,
+  clientId: string,
+  clientNameSnapshot: string,
+  serviceId: string | null,
+  serviceName: string,
+  price: number,
+  startTime: string,
+  endTime: string,
+  durationMinutes: number,
+  notes: string | null,
+  status: "Prenotato" | "Confermato" | "Completato" | "Annullato",
+  reminderMinutes: number,
+  notificationIdentifier: string | null,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+Ogni creazione appuntamento puo' generare una notifica interna in `notifications`.
+Quando un appuntamento passa a `Completato`, l'app puo' aggiornare statistiche aggregate sulla scheda cliente.
+
 ### Notifiche NovaBeauty
 
 Il Centro Notifiche usa dati app-specifici:
