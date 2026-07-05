@@ -1,21 +1,29 @@
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { AppointmentRow } from "./AppointmentRow";
 
-const appointments = [
-  { time: "09:30", client: "Giulia R.", service: "Pulizia viso premium", price: "EUR 65" },
-  { time: "11:00", client: "Marta L.", service: "Trattamento corpo", price: "EUR 90" },
-  { time: "15:30", client: "Elena P.", service: "Massaggio drenante", price: "EUR 75" }
-];
+type TodayAgendaProps = {
+  appointments?: Array<{
+    id: string;
+    time: string;
+    client: string;
+    service: string;
+  }>;
+};
 
-export function TodayAgenda() {
+export function TodayAgenda({ appointments = [] }: TodayAgendaProps) {
   return (
     <section className="space-y-3">
-      <SectionHeader title="Agenda di oggi" caption="Trattamenti programmati e incasso previsto" />
-      <div className="space-y-2">
-        {appointments.map((appointment) => (
-          <AppointmentRow key={appointment.time} {...appointment} />
-        ))}
-      </div>
+      <SectionHeader title="Agenda di oggi" caption="Solo appuntamenti reali salvati in Firestore" />
+      {appointments.length ? (
+        <div className="space-y-2">
+          {appointments.map((appointment) => (
+            <AppointmentRow key={appointment.id} {...appointment} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="Nessun appuntamento oggi" description="Gli appuntamenti reali compariranno qui." />
+      )}
     </section>
   );
 }

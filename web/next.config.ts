@@ -5,6 +5,9 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  fallbacks: {
+    document: "/~offline"
+  },
   workboxOptions: {
     skipWaiting: true
   }
@@ -12,7 +15,11 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  poweredByHeader: false
+  poweredByHeader: false,
+  webpack(config) {
+    config.cache = false;
+    return config;
+  }
 };
 
 export default withPWA(nextConfig);

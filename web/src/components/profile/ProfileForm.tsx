@@ -11,6 +11,7 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { SuccessMessage } from "@/components/ui/SuccessMessage";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { profilePath } from "@/lib/firebase/paths";
 import type { ProfileDocument } from "@/types/firestore";
@@ -33,20 +34,9 @@ const initialForm: ProfileFormState = {
   description: ""
 };
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error && "code" in error) {
-    return `Errore Firebase (${String(error.code)}): ${error.message}`;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Errore imprevisto durante il salvataggio del profilo.";
-}
-
 export function ProfileForm() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [form, setForm] = useState<ProfileFormState>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,8 +72,10 @@ export function ProfileForm() {
           description: data?.description ?? ""
         });
       } catch (loadError) {
+        console.error("Profile load failed", loadError);
         if (isActive) {
-          setError(getErrorMessage(loadError));
+          setError("Non siamo riusciti a caricare il profilo. Controlla la connessione e riprova.");
+          showToast("Non siamo riusciti a caricare il profilo.", "error");
         }
       } finally {
         if (isActive) {
@@ -97,7 +89,7 @@ export function ProfileForm() {
     return () => {
       isActive = false;
     };
-  }, [user]);
+  }, [showToast, user]);
 
   function updateField(field: keyof ProfileFormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -135,8 +127,11 @@ export function ProfileForm() {
       );
 
       setSuccess("Profilo salvato correttamente.");
+      showToast("Profilo salvato correttamente.");
     } catch (saveError) {
-      setError(getErrorMessage(saveError));
+      console.error("Profile save failed", saveError);
+      setError("Non siamo riusciti a salvare il profilo. Controlla i dati e riprova.");
+      showToast("Non siamo riusciti a salvare il profilo.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -167,7 +162,7 @@ export function ProfileForm() {
               name="businessName"
               value={form.businessName}
               onChange={(event) => updateField("businessName", event.target.value)}
-              placeholder="Studio Bellezza Nova"
+              placeholder="Nome del tuo studio"
               disabled={isSubmitting}
               required
             />

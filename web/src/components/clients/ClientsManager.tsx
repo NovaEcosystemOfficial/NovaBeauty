@@ -14,6 +14,7 @@ import { SecondaryButton } from "@/components/ui/SecondaryButton";
 import { SuccessMessage } from "@/components/ui/SuccessMessage";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { clientsPath } from "@/lib/firebase/paths";
 import type { ClientDocument } from "@/types/firestore";
@@ -36,20 +37,9 @@ const emptyClientForm: ClientFormState = {
   notes: ""
 };
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error && "code" in error) {
-    return `Errore Firebase (${String(error.code)}): ${error.message}`;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Errore imprevisto durante la gestione clienti.";
-}
-
 export function ClientsManager() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [form, setForm] = useState<ClientFormState>(emptyClientForm);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
@@ -83,13 +73,15 @@ export function ClientsManager() {
         setIsLoading(false);
       },
       (snapshotError) => {
-        setError(getErrorMessage(snapshotError));
+        console.error("Clients subscription failed", snapshotError);
+        setError("Non siamo riusciti a caricare i clienti. Controlla la connessione e riprova.");
+        showToast("Non siamo riusciti a caricare i clienti.", "error");
         setIsLoading(false);
       }
     );
 
     return unsubscribe;
-  }, [clientsCollectionPath, user]);
+  }, [clientsCollectionPath, showToast, user]);
 
   function updateField(field: keyof ClientFormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -153,6 +145,7 @@ export function ClientsManager() {
       if (editingClientId) {
         await updateDoc(doc(db, clientsCollectionPath, editingClientId), clientPayload);
         setSuccess("Cliente aggiornato correttamente.");
+        showToast("Cliente aggiornato correttamente.");
       } else {
         const clientRef = doc(collection(db, clientsCollectionPath));
         await setDoc(clientRef, {
@@ -161,11 +154,14 @@ export function ClientsManager() {
           createdAt: serverTimestamp()
         });
         setSuccess("Cliente creato correttamente.");
+        showToast("Cliente creato correttamente.");
       }
 
       closeForm();
     } catch (saveError) {
-      setError(getErrorMessage(saveError));
+      console.error("Client save failed", saveError);
+      setError("Non siamo riusciti a salvare il cliente. Controlla i dati e riprova.");
+      showToast("Non siamo riusciti a salvare il cliente.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -188,11 +184,14 @@ export function ClientsManager() {
     try {
       await deleteDoc(doc(db, clientsCollectionPath, client.id));
       setSuccess("Cliente eliminato.");
+      showToast("Cliente eliminato.");
       if (editingClientId === client.id) {
         closeForm();
       }
     } catch (deleteError) {
-      setError(getErrorMessage(deleteError));
+      console.error("Client delete failed", deleteError);
+      setError("Non siamo riusciti a eliminare il cliente. Riprova tra poco.");
+      showToast("Non siamo riusciti a eliminare il cliente.", "error");
     }
   }
 

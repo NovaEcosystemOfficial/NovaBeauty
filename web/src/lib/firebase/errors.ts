@@ -17,12 +17,14 @@ const authErrorMessages: Record<string, string> = {
 };
 
 export function getReadableAuthError(error: unknown) {
+  console.error("Firebase auth flow failed", error);
+
   if (error instanceof BootstrapWriteError) {
-    return `Errore Firestore durante la registrazione (${error.code}) su ${error.path}. ${error.message}`;
+    return "Account creato, ma non siamo riusciti a preparare lo spazio NovaBeauty. Riprova tra poco o contatta il supporto.";
   }
 
   if (error instanceof FirebaseError) {
-    return authErrorMessages[error.code] ?? `Errore Firebase (${error.code}): ${error.message}`;
+    return authErrorMessages[error.code] ?? "Non siamo riusciti a completare l'operazione. Controlla i dati e riprova.";
   }
 
   return "Si e' verificato un errore inatteso. Riprova.";
