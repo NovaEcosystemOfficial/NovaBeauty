@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { profilePath } from "@/lib/firebase/paths";
+import { createProfileCompletedNotification } from "@/lib/notifications/notifications";
 import type { ProfileDocument } from "@/types/firestore";
 
 type ProfileFormState = {
@@ -128,6 +129,9 @@ export function ProfileForm() {
 
       setSuccess("Profilo salvato correttamente.");
       showToast("Profilo salvato correttamente.");
+      createProfileCompletedNotification(user.uid).catch((notificationError) => {
+        console.error("Profile completed notification failed", notificationError);
+      });
     } catch (saveError) {
       console.error("Profile save failed", saveError);
       setError("Non siamo riusciti a salvare il profilo. Controlla i dati e riprova.");

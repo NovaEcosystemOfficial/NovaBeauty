@@ -87,6 +87,30 @@ export type AppointmentDocument = {
   updatedAt: Timestamp;
 };
 
+export type NotificationCategory = "appointment" | "client" | "finance" | "system" | "promotion";
+export type NotificationPriority = "low" | "normal" | "high";
+
+export type NotificationDocument = {
+  ownerId: string;
+  title: string;
+  description: string;
+  type: NotificationCategory;
+  priority: NotificationPriority;
+  date: Timestamp;
+  read: boolean;
+  action: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type MessagingTokenDocument = {
+  ownerId: string;
+  token: string;
+  userAgent: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
 export type SettingsDocument = {
   ownerId: string;
   email: string;

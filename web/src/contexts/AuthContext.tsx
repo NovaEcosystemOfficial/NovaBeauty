@@ -11,6 +11,7 @@ import {
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { auth } from "@/lib/firebase/client";
 import { createUserBootstrapDocuments } from "@/lib/firebase/user-documents";
+import { createLoginNotification, createWelcomeNotification } from "@/lib/notifications/notifications";
 
 type AuthContextValue = {
   user: User | null;
@@ -45,11 +46,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user,
       loading,
       async login(email, password) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        createLoginNotification(credential.user.uid).catch((error) => {
+          console.error("Login notification failed", error);
+        });
       },
       async register(email, password) {
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await createUserBootstrapDocuments(credential.user);
+        createWelcomeNotification(credential.user.uid).catch((error) => {
+          console.error("Welcome notification failed", error);
+        });
       },
       async resetPassword(email) {
         await sendPasswordResetEmail(auth, email);

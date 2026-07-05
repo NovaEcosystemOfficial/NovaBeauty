@@ -70,7 +70,42 @@ novabeautyUsers/{uid}/clients/{clientId}
 novabeautyUsers/{uid}/appointments/{appointmentId}
 novabeautyUsers/{uid}/services/{serviceId}
 novabeautyUsers/{uid}/products/{productId}
+novabeautyUsers/{uid}/notifications/{notificationId}
+novabeautyUsers/{uid}/messagingTokens/{tokenId}
 ```
+
+### Notifiche NovaBeauty
+
+Il Centro Notifiche usa dati app-specifici:
+
+```text
+novabeautyUsers/{uid}/notifications/{notificationId}
+```
+
+Campi standard:
+
+```ts
+{
+  ownerId: string,
+  title: string,
+  description: string,
+  type: "appointment" | "client" | "finance" | "system" | "promotion",
+  priority: "low" | "normal" | "high",
+  date: Timestamp,
+  read: boolean,
+  action: string | null,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+I token Firebase Cloud Messaging sono salvati in:
+
+```text
+novabeautyUsers/{uid}/messagingTokens/{tokenId}
+```
+
+Le notifiche automatiche server-side future dovranno leggere questi token senza spostarli in `users/{uid}`.
 
 ## Firestore Rules
 

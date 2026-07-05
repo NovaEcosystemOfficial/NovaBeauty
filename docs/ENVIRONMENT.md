@@ -30,6 +30,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=
 ```
 
 `.env.local` contiene i valori locali reali e non deve mai essere committato.
@@ -44,8 +45,28 @@ Queste variabili configurano il Firebase Web SDK:
 - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_VAPID_KEY` opzionale per abilitare Firebase Cloud Messaging web push
 
 Il prefisso `NEXT_PUBLIC_` e' necessario per rendere la configurazione disponibile al client Next.js.
+
+## Firebase Cloud Messaging
+
+Le app Nova che usano notifiche push web devono aggiungere:
+
+```env
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=
+```
+
+La chiave VAPID si genera da Firebase Console, sezione Cloud Messaging.
+
+Per NovaBeauty questa variabile abilita:
+
+- richiesta permesso notifiche
+- generazione token FCM web
+- salvataggio token in `novabeautyUsers/{uid}/messagingTokens/{tokenId}`
+- notifiche foreground e background
+
+Se la variabile non e' configurata, la PWA resta funzionante ma le notifiche push non vengono abilitate.
 
 ## Configurare un nuovo progetto Nova
 

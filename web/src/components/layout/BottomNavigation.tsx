@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Home, Scissors, UserCircle, Users } from "lucide-react";
+import { Bell, Calendar, Home, Scissors, UserCircle, Users } from "lucide-react";
+import { NotificationBadge } from "@/components/notifications/NotificationBadge";
 import { mainNavigation } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils/cn";
 
@@ -11,6 +12,7 @@ const icons = {
   clients: Users,
   appointments: Calendar,
   services: Scissors,
+  notifications: Bell,
   profile: UserCircle
 };
 
@@ -19,7 +21,7 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-beauty-border/80 bg-beauty-surface/88 shadow-beauty-floating backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-xl grid-cols-5">
+      <div className="mx-auto grid h-16 max-w-2xl grid-cols-6">
         {mainNavigation.map((item) => {
           const Icon = icons[item.icon];
           const isActive = pathname === item.href;
@@ -33,8 +35,9 @@ export function BottomNavigation() {
                 isActive && "text-beauty-primary"
               )}
             >
-              <span className={cn("grid size-8 place-items-center rounded-full", isActive && "bg-beauty-primary/12")}>
+              <span className={cn("relative grid size-8 place-items-center rounded-full", isActive && "bg-beauty-primary/12")}>
                 <Icon aria-hidden="true" className="size-5" />
+                {item.icon === "notifications" ? <NotificationBadge /> : null}
               </span>
               <span>{item.label}</span>
             </Link>

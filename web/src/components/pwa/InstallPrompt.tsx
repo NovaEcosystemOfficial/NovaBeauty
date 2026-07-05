@@ -4,6 +4,9 @@ import { Download, Share } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SecondaryButton } from "@/components/ui/SecondaryButton";
 
+const dismissedStorageKey = "novabeauty-install-dismissed-at";
+const dismissDurationMs = 1000 * 60 * 60 * 24 * 7;
+
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -36,6 +39,11 @@ export function InstallPrompt() {
   useEffect(() => {
     setInstalled(isStandalone());
 
+    const dismissedAt = Number(window.localStorage.getItem(dismissedStorageKey) ?? "0");
+    if (dismissedAt && Date.now() - dismissedAt < dismissDurationMs) {
+      setDismissed(true);
+    }
+
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
@@ -44,6 +52,7 @@ export function InstallPrompt() {
     function handleInstalled() {
       setInstalled(true);
       setInstallEvent(null);
+      window.localStorage.setItem(dismissedStorageKey, String(Date.now()));
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -96,9 +105,12 @@ export function InstallPrompt() {
             <button
               type="button"
               className="h-10 rounded-beauty px-3 text-[13px] font-semibold text-beauty-muted transition hover:bg-beauty-card hover:text-beauty-text"
-              onClick={() => setDismissed(true)}
+              onClick={() => {
+                window.localStorage.setItem(dismissedStorageKey, String(Date.now()));
+                setDismissed(true);
+              }}
             >
-              Non ora
+              Pi&ugrave; tardi
             </button>
           </div>
         </div>

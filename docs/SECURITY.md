@@ -84,6 +84,7 @@ Le regole Storage devono verificare `request.auth.uid`.
 - Non usare wildcard aperte senza controllo uid.
 - Non usare `allow read, write: if true`.
 - Non salvare dati di app in `users/{uid}`.
+- Salvare token push e notifiche solo nel namespace app-specifico dell'utente.
 - Non cancellare namespace legacy senza migrazione.
 - Non deployare rules senza dry-run.
 - Non introdurre env senza documentazione.
