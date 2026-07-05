@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NovaBeauty">
+  <rect width="512" height="512" rx="112" fill="#F8F4F6"/>
+  <circle cx="256" cy="256" r="148" fill="#D8A7B1"/>
+  <path fill="#FFFFFF" d="M256 139c37 52 76 91 118 117-42 26-81 65-118 117-37-52-76-91-118-117 42-26 81-65 118-117Z"/>
+  <circle cx="256" cy="256" r="34" fill="#EAC7CF"/>
+</svg>
