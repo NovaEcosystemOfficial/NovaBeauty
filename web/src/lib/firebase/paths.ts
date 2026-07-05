@@ -1,7 +1,9 @@
 export const userPath = (userId: string) => `users/${userId}`;
-export const profilePath = (userId: string) => `users/${userId}/profile/main`;
-export const settingsPath = (userId: string) => `users/${userId}/settings/main`;
-export const clientsPath = (userId: string) => `users/${userId}/clients`;
-export const servicesPath = (userId: string) => `users/${userId}/services`;
-export const appointmentsPath = (userId: string) => `users/${userId}/appointments`;
-export const profileImagePath = (userId: string) => `users/${userId}/profile/profile.jpg`;
+export const novabeautyUserPath = (userId: string) => `novabeautyUsers/${userId}`;
+export const profilePath = (userId: string) => `novabeautyUsers/${userId}/profile/main`;
+export const settingsPath = (userId: string) => `novabeautyUsers/${userId}/settings/main`;
+export const clientsPath = (userId: string) => `novabeautyUsers/${userId}/clients`;
+export const servicesPath = (userId: string) => `novabeautyUsers/${userId}/services`;
+export const appointmentsPath = (userId: string) => `novabeautyUsers/${userId}/appointments`;
+export const productsPath = (userId: string) => `novabeautyUsers/${userId}/products`;
+export const profileImagePath = (userId: string) => `novabeautyUsers/${userId}/profile/profile.jpg`;

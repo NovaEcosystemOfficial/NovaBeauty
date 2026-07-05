@@ -1,193 +1,95 @@
-# Roadmap
+# Nova Ecosystem Roadmap
 
-## Milestone 1 - Setup progetto
+## Obiettivo
 
-Obiettivo:
+Trasformare Nova in una piattaforma software scalabile in cui ogni nuova applicazione puo' essere aggiunta senza modificare o rompere l'infrastruttura esistente.
 
-Preparare il progetto Next.js senza implementare feature complesse.
+## Fase 1 - Fondamenta Ecosistema
 
-Attivita':
-
-- Creare progetto Next.js.
-- Configurare TypeScript.
-- Configurare ESLint e formatter.
-- Configurare struttura cartelle.
-- Installare Firebase Web SDK.
-- Preparare variabili ambiente.
-- Preparare layout mobile-first.
-- Creare tema base NovaBeauty.
-
-Output:
-
-- App Next.js avviabile.
-- Struttura pronta per auth, dati e componenti.
-
-## Milestone 2 - Auth
-
-Obiettivo:
-
-Replicare login, registrazione, reset password e sessione Firebase.
+Stato: in corso.
 
 Attivita':
 
-- Configurare Firebase Auth.
-- Creare Login page.
-- Creare registrazione.
-- Creare reset password.
-- Creare guard route autenticata.
-- Creare documento `users/{uid}` al primo accesso.
+- definire architettura Nova Core
+- standardizzare environment
+- separare namespace app-specifici
+- documentare Firebase condiviso
+- documentare deploy e sicurezza
+- introdurre controllo impatto infrastrutturale
 
 Output:
 
-- Utente puo' entrare, uscire e recuperare password.
+- documentazione ufficiale in `docs/`
+- standard riutilizzabile da tutte le app Nova
 
-## Milestone 3 - Dashboard
+## Fase 2 - NovaBeauty Base
 
-Obiettivo:
-
-Ricreare la Home di Beauty Souls.
+Stato: in corso.
 
 Attivita':
 
-- Creare AppShell.
-- Creare BottomNavigation.
-- Creare dashboard cards.
-- Leggere appuntamenti di oggi.
-- Calcolare incasso giornaliero.
-- Aggiungere azione "Nuovo Appuntamento".
+- PWA Next.js in `web/`
+- Firebase Auth
+- namespace `novabeautyUsers`
+- dashboard grafica
+- design system app-specifico
+- env validation
 
 Output:
 
-- Dashboard funzionante con dati reali Firestore.
+- NovaBeauty pronta a diventare prodotto funzionante senza rompere Nova Core
 
-## Milestone 4 - Clienti
-
-Obiettivo:
-
-Gestire clienti.
+## Fase 3 - Data Layer Riutilizzabile
 
 Attivita':
 
-- Creare collection `clients`.
-- Creare lista clienti.
-- Creare form aggiunta cliente.
-- Validare nome e telefono.
-- Bloccare duplicati telefono.
-- Implementare eliminazione.
+- creare helper Firestore per namespace app
+- validazioni condivise
+- gestione errori Firebase standard
+- convenzioni timestamp e ownership
+- storage path standard
 
 Output:
 
-- CRUD clienti base.
+- base dati riutilizzabile da NovaPromo, NovaDocs, NovaJob e future app
 
-## Milestone 5 - Appuntamenti
-
-Obiettivo:
-
-Gestire agenda e creazione appuntamenti.
+## Fase 4 - Moduli Condivisi
 
 Attivita':
 
-- Creare collection `appointments`.
-- Creare lista appuntamenti ordinata.
-- Creare form nuovo appuntamento.
-- Collegare clienti.
-- Collegare servizi.
-- Autocompilare prezzo da servizio.
-- Implementare eliminazione.
-- Salvare reminderMinutes, anche se notifiche PWA verranno rifinite dopo.
+- auth guard condivisibile
+- componenti UI core
+- env checker riutilizzabile
+- deploy checklist comune
+- logger diagnostico
 
 Output:
 
-- Agenda equivalente a Beauty Souls.
+- riduzione duplicazione tra app Nova
 
-## Milestone 6 - Servizi
+## Fase 5 - Nuove App Nova
 
-Obiettivo:
+Candidate:
 
-Gestire listino servizi.
+- NovaPromo
+- NovaDocs
+- NovaJob
+- NovaMobile
+
+Regola:
+
+Ogni nuova app deve usare namespace dedicato e non modificare `users/{uid}` oltre ai campi Core documentati.
+
+## Fase 6 - Governance Infrastrutturale
 
 Attivita':
 
-- Creare collection `services`.
-- Creare lista servizi.
-- Creare form aggiunta servizio.
-- Validare prezzo e durata.
-- Bloccare duplicati nome.
-- Implementare eliminazione.
+- changelog infrastrutturale obbligatorio
+- review Firestore Rules
+- dry-run prima deploy Firebase
+- rollback plan per deploy critici
+- audit periodico env Vercel/Firebase
 
 Output:
 
-- Catalogo servizi operativo.
-
-## Milestone 7 - Statistiche
-
-Obiettivo:
-
-Replicare statistiche mensili.
-
-Attivita':
-
-- Calcolare appuntamenti mese corrente.
-- Calcolare incasso mensile.
-- Calcolare cliente top.
-- Creare card statistiche.
-
-Output:
-
-- Schermata statistiche fedele a Beauty Souls.
-
-## Milestone 8 - Profilo
-
-Obiettivo:
-
-Gestire profilo attivita'.
-
-Attivita':
-
-- Creare documento `profile/main`.
-- Creare form profilo.
-- Salvare nome, telefono, indirizzo, email, orari, descrizione.
-- Implementare upload immagine profilo.
-- Implementare logout.
-
-Output:
-
-- Profilo modificabile e persistente.
-
-## Milestone 9 - PWA
-
-Obiettivo:
-
-Rendere NovaBeauty installabile e usabile come app.
-
-Attivita':
-
-- Creare manifest.
-- Configurare icone.
-- Configurare service worker.
-- Verificare installabilita'.
-- Ottimizzare mobile viewport.
-- Preparare stati offline minimi.
-
-Output:
-
-- PWA installabile da smartphone.
-
-## Milestone 10 - Deploy
-
-Obiettivo:
-
-Pubblicare la prima versione.
-
-Attivita':
-
-- Configurare Firebase Hosting o hosting scelto.
-- Configurare variabili ambiente.
-- Pubblicare Firestore rules.
-- Testare login e dati in produzione.
-- Verificare mobile.
-- Verificare installazione PWA.
-
-Output:
-
-- NovaBeauty online, pronta per utilizzo reale.
+- crescita controllata dell'ecosistema

@@ -3,7 +3,17 @@ import type { Timestamp } from "firebase/firestore";
 export type BusinessType = "estetica";
 
 export type UserDocument = {
-  uid: string;
+  email: string;
+  displayName: string;
+  apps: {
+    novabeauty: boolean;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type NovaBeautyUserDocument = {
+  ownerId: string;
   email: string;
   displayName: string;
   onboardingCompleted: boolean;
@@ -44,6 +54,18 @@ export type ServiceDocument = {
   name: string;
   price: number;
   durationMinutes: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type ProductDocument = {
+  ownerId: string;
+  syncId: string;
+  name: string;
+  category: string;
+  quantity: number;
+  minimumThreshold: number;
+  supplierLink: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };

@@ -4,10 +4,18 @@
 
 Ogni record deve appartenere all'utente autenticato.
 
-La struttura definitiva deve usare dati sotto `users/{userId}`. Questo mantiene la compatibilita' con le regole Firestore gia' presenti nel progetto:
+La struttura definitiva separa Nova Core dai dati specifici NovaBeauty.
+
+Nova Core usa:
 
 ```text
-users/{userId}/{document=**}
+users/{userId}
+```
+
+NovaBeauty usa:
+
+```text
+novabeautyUsers/{userId}/{document=**}
 ```
 
 Regola base:
@@ -20,17 +28,21 @@ request.auth != null && request.auth.uid == userId
 
 ```text
 users/{userId}
+  apps.novabeauty = true
+
+novabeautyUsers/{userId}
   profile/main
   clients/{clientId}
   services/{serviceId}
   appointments/{appointmentId}
+  products/{productId}
   settings/main
 ```
 
 Nota: il magazzino esiste in Beauty Souls, ma non e' nel flusso prioritario NovaBeauty richiesto. Se verra' mantenuto in futuro, usare:
 
 ```text
-users/{userId}/inventory/{productId}
+novabeautyUsers/{userId}/products/{productId}
 ```
 
 ## users
@@ -45,8 +57,11 @@ Campi:
 
 ```ts
 {
-  uid: string,
   email: string,
+  displayName: string,
+  apps: {
+    novabeauty: true
+  },
   createdAt: Timestamp,
   updatedAt: Timestamp
 }
@@ -54,16 +69,42 @@ Campi:
 
 Uso:
 
-- Documento radice utente.
+- Documento radice utente Nova Core.
 - Non contiene dati operativi pesanti.
-- Serve come punto di ingresso per subcollections e impostazioni.
+- Tiene traccia delle app Nova abilitate per l'utente.
+
+## novabeautyUsers
+
+Documento:
+
+```text
+novabeautyUsers/{userId}
+```
+
+Campi:
+
+```ts
+{
+  ownerId: string,
+  email: string,
+  displayName: string,
+  onboardingCompleted: boolean,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+Uso:
+
+- Documento radice dello spazio NovaBeauty.
+- Tutti i dati operativi NovaBeauty vivono sotto questo namespace.
 
 ## profile
 
 Documento:
 
 ```text
-users/{userId}/profile/main
+novabeautyUsers/{userId}/profile/main
 ```
 
 Campi:
@@ -106,7 +147,7 @@ Decisione NovaBeauty:
 Collection:
 
 ```text
-users/{userId}/clients/{clientId}
+novabeautyUsers/{userId}/clients/{clientId}
 ```
 
 Campi:
@@ -134,7 +175,7 @@ Indici/logica:
 Collection:
 
 ```text
-users/{userId}/services/{serviceId}
+novabeautyUsers/{userId}/services/{serviceId}
 ```
 
 Campi:
@@ -163,7 +204,7 @@ Indici/logica:
 Collection:
 
 ```text
-users/{userId}/appointments/{appointmentId}
+novabeautyUsers/{userId}/appointments/{appointmentId}
 ```
 
 Campi:
@@ -209,7 +250,7 @@ Query principali:
 Documento:
 
 ```text
-users/{userId}/settings/main
+novabeautyUsers/{userId}/settings/main
 ```
 
 Campi:
@@ -230,12 +271,12 @@ Uso:
 - Tenere impostazioni tecniche minime.
 - Non introdurre preferenze nuove nella prima versione.
 
-## inventory opzionale
+## products opzionale
 
 Collection opzionale, solo se si decide di portare il magazzino originale:
 
 ```text
-users/{userId}/inventory/{productId}
+novabeautyUsers/{userId}/products/{productId}
 ```
 
 Campi:
@@ -259,7 +300,7 @@ Campi:
 Per immagine profilo:
 
 ```text
-users/{userId}/profile/profile.jpg
+novabeautyUsers/{userId}/profile/profile.jpg
 ```
 
 Nel documento `profile/main` salvare solo `imageUrl`.

@@ -2,27 +2,60 @@ import type { User } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "./client";
 
+type BootstrapWrite = {
+  path: string;
+  data: Record<string, unknown>;
+};
+
+export class BootstrapWriteError extends Error {
+  code: string;
+  path: string;
+
+  constructor(path: string, error: unknown) {
+    const firebaseLikeError = error as { code?: string; message?: string };
+    const code = firebaseLikeError.code ?? "unknown";
+    const message = firebaseLikeError.message ?? "Errore sconosciuto";
+
+    super(`Firestore bootstrap failed at ${path}: ${code} - ${message}`);
+    this.name = "BootstrapWriteError";
+    this.code = code;
+    this.path = path;
+    this.cause = error;
+  }
+}
+
 export async function createUserBootstrapDocuments(user: User) {
   const timestamp = serverTimestamp();
   const email = user.email ?? "";
   const displayName = user.displayName ?? "";
 
-  await Promise.all([
-    setDoc(
-      doc(db, "users", user.uid),
-      {
-        uid: user.uid,
+  const writes: BootstrapWrite[] = [
+    {
+      path: `users/${user.uid}`,
+      data: {
+        email,
+        displayName,
+        apps: {
+          novabeauty: true
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp
+      }
+    },
+    {
+      path: `novabeautyUsers/${user.uid}`,
+      data: {
+        ownerId: user.uid,
         email,
         displayName,
         createdAt: timestamp,
         updatedAt: timestamp,
         onboardingCompleted: false
-      },
-      { merge: true }
-    ),
-    setDoc(
-      doc(db, "users", user.uid, "profile", "main"),
-      {
+      }
+    },
+    {
+      path: `novabeautyUsers/${user.uid}/profile/main`,
+      data: {
         ownerId: user.uid,
         syncId: user.uid,
         email,
@@ -37,12 +70,11 @@ export async function createUserBootstrapDocuments(user: User) {
         createdAt: timestamp,
         updatedAt: timestamp,
         onboardingCompleted: false
-      },
-      { merge: true }
-    ),
-    setDoc(
-      doc(db, "users", user.uid, "settings", "main"),
-      {
+      }
+    },
+    {
+      path: `novabeautyUsers/${user.uid}/settings/main`,
+      data: {
         ownerId: user.uid,
         email,
         displayName,
@@ -52,8 +84,15 @@ export async function createUserBootstrapDocuments(user: User) {
         createdAt: timestamp,
         updatedAt: timestamp,
         onboardingCompleted: false
-      },
-      { merge: true }
-    )
-  ]);
+      }
+    }
+  ];
+
+  for (const write of writes) {
+    try {
+      await setDoc(doc(db, write.path), write.data, { merge: true });
+    } catch (error) {
+      throw new BootstrapWriteError(write.path, error);
+    }
+  }
 }
