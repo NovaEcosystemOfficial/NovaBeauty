@@ -141,6 +141,36 @@ Campi standard:
 Ogni creazione appuntamento puo' generare una notifica interna in `notifications`.
 Quando un appuntamento passa a `Completato`, l'app puo' aggiornare statistiche aggregate sulla scheda cliente.
 
+### Servizi NovaBeauty
+
+Il catalogo trattamenti e' salvato in:
+
+```text
+novabeautyUsers/{uid}/services/{serviceId}
+```
+
+Campi standard:
+
+```ts
+{
+  ownerId: string,
+  syncId: string,
+  name: string,
+  category: string,
+  price: number | null,
+  durationMinutes: number,
+  description: string | null,
+  active: boolean,
+  source: "manual" | "template",
+  templateId: string | null,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+I template NovaBeauty possono precompilare nome, categoria, durata e descrizione.
+Il prezzo resta `null` finche' non viene impostato dallo studio.
+
 ### Notifiche NovaBeauty
 
 Il Centro Notifiche usa dati app-specifici:

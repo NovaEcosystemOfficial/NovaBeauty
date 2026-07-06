@@ -61,8 +61,13 @@ export type ServiceDocument = {
   ownerId: string;
   syncId: string;
   name: string;
-  price: number;
+  category: string;
+  price: number | null;
   durationMinutes: number;
+  description: string | null;
+  active: boolean;
+  source: "manual" | "template";
+  templateId: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };

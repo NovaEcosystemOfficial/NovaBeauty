@@ -154,7 +154,7 @@ export function AppointmentsManager() {
           serviceId: value,
           serviceName: selectedService?.name ?? current.serviceName,
           durationMinutes: selectedService ? String(selectedService.durationMinutes) : current.durationMinutes,
-          price: selectedService ? String(selectedService.price) : current.price
+          price: selectedService && typeof selectedService.price === "number" ? String(selectedService.price) : current.price
         };
       }
 
