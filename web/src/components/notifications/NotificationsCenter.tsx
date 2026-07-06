@@ -26,7 +26,12 @@ import { SuccessMessage } from "@/components/ui/SuccessMessage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
-import { hasFirebaseVapidKey, requestNotificationPermissionAndSaveToken } from "@/lib/firebase/messaging";
+import {
+  hasFirebaseVapidKey,
+  isMessagingAvailable,
+  refreshMessagingTokenIfGranted,
+  requestNotificationPermissionAndSaveToken
+} from "@/lib/firebase/messaging";
 import { notificationsPath } from "@/lib/firebase/paths";
 import { markNotificationAsRead } from "@/lib/notifications/notifications";
 import type { NotificationCategory, NotificationDocument } from "@/types/firestore";
@@ -34,6 +39,8 @@ import type { NotificationCategory, NotificationDocument } from "@/types/firesto
 type NotificationItem = NotificationDocument & {
   id: string;
 };
+
+type PushStatus = "checking" | "unsupported" | "not-configured" | "default" | "enabled" | "blocked";
 
 const categoryIcons = {
   appointment: Calendar,
@@ -74,8 +81,42 @@ export function NotificationsCenter() {
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [isSendingTestPush, setIsSendingTestPush] = useState(false);
   const [canSendTestPush, setCanSendTestPush] = useState(process.env.NODE_ENV === "development");
+  const [pushStatus, setPushStatus] = useState<PushStatus>("checking");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const pushStatusContent = {
+    checking: {
+      title: "Controllo notifiche",
+      description: "Stiamo verificando lo stato delle notifiche su questo dispositivo.",
+      tone: "primary" as const
+    },
+    unsupported: {
+      title: "Push non disponibili",
+      description: "Questo browser non supporta le notifiche push web. Su iPhone installa NovaBeauty nella schermata Home.",
+      tone: "lavender" as const
+    },
+    "not-configured": {
+      title: "Push non configurate",
+      description: "La chiave VAPID non e configurata nell'ambiente di deploy.",
+      tone: "gold" as const
+    },
+    default: {
+      title: "Da abilitare",
+      description: "Abilita le push una sola volta per ricevere notifiche di sistema su questo dispositivo.",
+      tone: "primary" as const
+    },
+    enabled: {
+      title: "Notifiche attive",
+      description: "Il permesso e attivo. Al rientro nell'app NovaBeauty aggiorna il token in automatico.",
+      tone: "mint" as const
+    },
+    blocked: {
+      title: "Notifiche bloccate",
+      description: "Il browser ha bloccato le notifiche. Riattivale dalle impostazioni del sito o del dispositivo.",
+      tone: "gold" as const
+    }
+  }[pushStatus];
 
   useEffect(() => {
     if (!user) {
@@ -111,6 +152,57 @@ export function NotificationsCenter() {
 
   useEffect(() => {
     if (!user) {
+      return;
+    }
+
+    let active = true;
+    const userId = user.uid;
+
+    async function syncPushStatus() {
+      if (!hasFirebaseVapidKey()) {
+        setPushStatus("not-configured");
+        return;
+      }
+
+      const supported = await isMessagingAvailable();
+      if (!active) {
+        return;
+      }
+
+      if (!supported || typeof Notification === "undefined") {
+        setPushStatus("unsupported");
+        return;
+      }
+
+      if (Notification.permission === "granted") {
+        setPushStatus("enabled");
+        refreshMessagingTokenIfGranted(userId).catch((tokenError) => {
+          console.error("Messaging token refresh from center failed", {
+            message: tokenError instanceof Error ? tokenError.message : "Errore sconosciuto"
+          });
+        });
+        return;
+      }
+
+      setPushStatus(Notification.permission === "denied" ? "blocked" : "default");
+    }
+
+    syncPushStatus().catch((statusError) => {
+      console.error("Push status check failed", {
+        message: statusError instanceof Error ? statusError.message : "Errore sconosciuto"
+      });
+      if (active) {
+        setPushStatus("unsupported");
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
       setCanSendTestPush(process.env.NODE_ENV === "development");
       return;
     }
@@ -142,10 +234,14 @@ export function NotificationsCenter() {
 
     try {
       await requestNotificationPermissionAndSaveToken(user.uid);
+      setPushStatus("enabled");
       setSuccess("Notifiche push abilitate su questo dispositivo.");
       showToast("Notifiche push abilitate.");
     } catch (pushError) {
       console.error("Push enable failed", pushError);
+      if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+        setPushStatus("blocked");
+      }
       setError(
         hasFirebaseVapidKey()
           ? "Non siamo riusciti ad abilitare le notifiche su questo dispositivo."
@@ -220,10 +316,21 @@ export function NotificationsCenter() {
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <PrimaryButton type="button" onClick={handleEnablePush} disabled={isEnablingPush}>
-              <ShieldCheck className="size-5" aria-hidden="true" />
-              {isEnablingPush ? "Attivazione..." : "Abilita push"}
-            </PrimaryButton>
+            {pushStatus === "enabled" ? (
+              <SecondaryButton type="button" disabled>
+                <ShieldCheck className="size-5" aria-hidden="true" />
+                Push attive
+              </SecondaryButton>
+            ) : (
+              <PrimaryButton
+                type="button"
+                onClick={handleEnablePush}
+                disabled={isEnablingPush || pushStatus === "unsupported" || pushStatus === "not-configured" || pushStatus === "blocked"}
+              >
+                <ShieldCheck className="size-5" aria-hidden="true" />
+                {isEnablingPush ? "Attivazione..." : "Abilita push"}
+              </PrimaryButton>
+            )}
             {canSendTestPush ? (
               <SecondaryButton type="button" onClick={handleSendTestPush} disabled={isSendingTestPush}>
                 <Send className="size-5" aria-hidden="true" />
@@ -232,6 +339,19 @@ export function NotificationsCenter() {
             ) : null}
           </div>
         </div>
+        <div className="rounded-beauty border border-beauty-border/70 bg-beauty-card p-3">
+          <div className="flex items-start gap-3">
+            <IconBadge icon={ShieldCheck} tone={pushStatusContent.tone} />
+            <div>
+              <p className="text-[15px] font-bold text-beauty-text">{pushStatusContent.title}</p>
+              <p className="mt-1 text-[13px] leading-5 text-beauty-muted">{pushStatusContent.description}</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-[12px] leading-5 text-beauty-subtle">
+          Nota: il suono delle notifiche di sistema dipende da iOS, Android, browser e modalita silenziosa. Quando l&apos;app e aperta,
+          NovaBeauty mostra anche una notifica interna.
+        </p>
         {error ? <ErrorMessage message={error} /> : null}
         {success ? <SuccessMessage message={success} /> : null}
       </Card>
