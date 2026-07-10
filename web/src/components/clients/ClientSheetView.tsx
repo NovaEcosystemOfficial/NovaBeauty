@@ -2,6 +2,7 @@
 
 import { deleteDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Calendar, Contact, Edit3, NotebookText, Plus, Trash2 } from "lucide-react";
 import { DiarioEntryPreview } from "@/components/clients/DiarioEntryPreview";
 import { getClientFullName, useClient } from "@/components/clients/useClient";
@@ -18,6 +19,7 @@ import { db } from "@/lib/firebase/client";
 import { deleteClientDiarioData } from "@/lib/firebase/diary-cleanup";
 import { clientsPath } from "@/lib/firebase/paths";
 import { routes } from "@/lib/constants/routes";
+import { recordRecentClient } from "@/lib/utils/clients-list";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ClientDocument } from "@/types/firestore";
 import type { Timestamp } from "firebase/firestore";
@@ -50,6 +52,12 @@ export function ClientSheetView({ clientId }: ClientSheetViewProps) {
   const { client, isLoading, error } = useClient(clientId);
   const { entries, isLoading: isDiarioLoading } = useClientDiario(clientId);
   const recentEntries = entries.slice(0, 3);
+
+  useEffect(() => {
+    if (user?.uid && clientId) {
+      recordRecentClient(user.uid, clientId);
+    }
+  }, [clientId, user?.uid]);
 
   async function handleDelete() {
     if (!user || !client) {

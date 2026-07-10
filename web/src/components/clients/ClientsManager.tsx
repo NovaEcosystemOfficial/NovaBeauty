@@ -11,17 +11,14 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { Contact, Edit3, FileUp, MoreHorizontal, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { FileUp, MoreHorizontal, Plus, Search, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { DangerButton } from "@/components/ui/DangerButton";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { FormField } from "@/components/ui/FormField";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { SecondaryButton } from "@/components/ui/SecondaryButton";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { SuccessMessage } from "@/components/ui/SuccessMessage";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +26,10 @@ import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { clientsPath } from "@/lib/firebase/paths";
 import { deleteClientDiarioData } from "@/lib/firebase/diary-cleanup";
+import { ClientsCompactList } from "@/components/clients/ClientsCompactList";
 import { routes } from "@/lib/constants/routes";
+import { recordRecentClient, type ClientListSegment } from "@/lib/utils/clients-list";
+import { cn } from "@/lib/utils/cn";
 import type { ClientDocument } from "@/types/firestore";
 
 type ClientItem = ClientDocument & { id: string };
@@ -202,6 +202,8 @@ export function ClientsManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [listSegment, setListSegment] = useState<ClientListSegment>("tutti");
+  const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const [contactImportError, setContactImportError] = useState("");
   const [contactImportNotice, setContactImportNotice] = useState("");
   const [contactPreview, setContactPreview] = useState<ContactPreview[]>([]);
@@ -480,6 +482,32 @@ export function ClientsManager() {
     }
   }
 
+  async function handleToggleFavorite(client: ClientItem) {
+    if (!clientsCollectionPath) {
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, clientsCollectionPath, client.id), {
+        favorite: !client.favorite,
+        updatedAt: serverTimestamp()
+      });
+      showToast(client.favorite ? "Cliente rimosso dai preferiti." : "Cliente aggiunto ai preferiti.");
+    } catch (favoriteError) {
+      console.error("Favorite toggle failed", favoriteError);
+      showToast("Non siamo riusciti ad aggiornare i preferiti.", "error");
+    }
+  }
+
+  function openClientSheet(client: ClientItem) {
+    if (user) {
+      recordRecentClient(user.uid, client.id);
+      setRecentRefreshKey((current) => current + 1);
+    }
+
+    router.push(routes.clientSheet(client.id));
+  }
+
   async function handleContactImport() {
     setContactImportError("");
     setContactImportNotice("");
@@ -681,26 +709,50 @@ export function ClientsManager() {
         </div>
       </div>
 
-      <Card className="grid gap-3 md:grid-cols-[1fr_220px]">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-beauty-muted" />
-          <input
-            className="h-11 w-full rounded-beauty border border-beauty-border bg-beauty-card pl-10 pr-3 text-[15px] text-beauty-text outline-none transition focus:border-beauty-primary focus:bg-beauty-surface"
-            placeholder="Cerca per nome, telefono, email o note"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
-        <select
-          className="h-11 rounded-beauty border border-beauty-border bg-beauty-card px-3 text-[15px] text-beauty-text outline-none"
-          value={sortMode}
-          onChange={(event) => setSortMode(event.target.value as SortMode)}
-        >
-          <option value="name">Ordina per nome</option>
-          <option value="createdAt">Piu recenti</option>
-          <option value="lastVisit">Ultima visita</option>
-          <option value="totalSpent">Totale speso</option>
-        </select>
+      <Card className="sticky top-0 z-20 -mx-beauty-page space-y-3 border-beauty-border/60 bg-beauty-surface/95 px-beauty-page py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
+        <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-beauty-muted" />
+            <input
+              className="h-11 w-full rounded-beauty border border-beauty-border bg-beauty-card pl-10 pr-3 text-[15px] text-beauty-text outline-none transition focus:border-beauty-primary focus:bg-beauty-surface"
+              placeholder="Cerca per nome, telefono, email o note"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <select
+            className="h-11 rounded-beauty border border-beauty-border bg-beauty-card px-3 text-[15px] text-beauty-text outline-none"
+            value={sortMode}
+            onChange={(event) => setSortMode(event.target.value as SortMode)}
+          >
+            <option value="name">Ordina per nome</option>
+            <option value="createdAt">Piu recenti</option>
+            <option value="lastVisit">Ultima visita</option>
+            <option value="totalSpent">Totale speso</option>
+          </select>
+        </div>
+
+        <div className="flex gap-1 rounded-beauty border border-beauty-border bg-beauty-card p-1">
+          {(
+            [
+              { id: "recenti", label: "Recenti" },
+              { id: "preferiti", label: "Preferiti" },
+              { id: "tutti", label: "Tutti" }
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setListSegment(item.id)}
+              className={cn(
+                "flex-1 rounded-beauty px-2 py-2 text-[13px] font-semibold transition",
+                listSegment === item.id ? "bg-beauty-primary/12 text-beauty-primary" : "text-beauty-muted"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </Card>
 
       {contactImportNotice ? <Card className="text-[14px] leading-6 text-beauty-muted">{contactImportNotice}</Card> : null}
@@ -782,50 +834,19 @@ export function ClientsManager() {
       {error ? <ErrorMessage message={error} /> : null}
       {success ? <SuccessMessage message={success} /> : null}
 
-      {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-        </div>
-      ) : filteredClients.length === 0 ? (
-        <EmptyState title="Nessun cliente" description={search ? "Nessun cliente corrisponde alla ricerca." : "Aggiungi o importa il primo cliente."} />
-      ) : (
-        <div className="grid gap-3">
-          {filteredClients.map((client) => {
-            const fullName = `${client.name} ${client.surname ?? ""}`.trim();
-
-            return (
-              <Card key={client.id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 gap-3">
-                  <div className="grid size-12 shrink-0 place-items-center rounded-full bg-beauty-primary/12 text-beauty-primary">
-                    <Contact className="size-5" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-[17px] font-semibold">{fullName}</p>
-                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-beauty-muted">
-                      {client.phone ? <span>{client.phone}</span> : null}
-                      {client.email ? <span>{client.email}</span> : null}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <SecondaryButton type="button" onClick={() => router.push(routes.clientSheet(client.id))} className="h-10 px-3">
-                      Scheda
-                    </SecondaryButton>
-                  <SecondaryButton type="button" onClick={() => openEditClientForm(client)} className="h-10 px-3">
-                    <Edit3 size={16} aria-hidden="true" />
-                    Modifica
-                  </SecondaryButton>
-                  <DangerButton type="button" onClick={() => handleDelete(client)} className="h-10 px-3">
-                    <Trash2 size={16} aria-hidden="true" />
-                    Elimina
-                  </DangerButton>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <ClientsCompactList
+        filteredClients={filteredClients}
+        isLoading={isLoading}
+        search={search}
+        sortMode={sortMode}
+        segment={listSegment}
+        userId={user?.uid}
+        recentRefreshKey={recentRefreshKey}
+        onOpenClient={openClientSheet}
+        onEditClient={openEditClientForm}
+        onDeleteClient={handleDelete}
+        onToggleFavorite={handleToggleFavorite}
+      />
     </div>
   );
 }

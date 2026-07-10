@@ -52,6 +52,7 @@ export type ClientDocument = {
   lastVisit: Timestamp | null;
   appointmentsCount: number;
   totalSpent: number;
+  favorite?: boolean;
   source: "manual" | "contacts" | "vcard";
   createdAt: Timestamp;
   updatedAt: Timestamp;
