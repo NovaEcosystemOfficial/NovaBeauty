@@ -11,9 +11,10 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { Contact, Edit3, FileUp, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { Contact, Edit3, FileUp, NotebookText, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
+import { ClientDiarioSection } from "@/components/clients/ClientDiarioSection";
 import { DangerButton } from "@/components/ui/DangerButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -27,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { clientsPath } from "@/lib/firebase/paths";
+import { deleteClientDiarioData } from "@/lib/firebase/diary-cleanup";
 import type { ClientDocument } from "@/types/firestore";
 
 type ClientItem = ClientDocument & { id: string };
@@ -212,6 +214,7 @@ export function ClientsManager() {
   const [isReadingVcard, setIsReadingVcard] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const vcardInputRef = useRef<HTMLInputElement>(null);
 
   const clientsCollectionPath = useMemo(() => (user ? clientsPath(user.uid) : null), [user]);
@@ -294,13 +297,24 @@ export function ClientsManager() {
 
   function openNewClientForm() {
     setEditingClientId(null);
+    setSelectedClientId(null);
     setForm(emptyClientForm);
     setError("");
     setSuccess("");
     setIsFormOpen(true);
   }
 
+  function toggleClientSheet(clientId: string) {
+    setSelectedClientId((current) => (current === clientId ? null : clientId));
+    setIsFormOpen(false);
+    setEditingClientId(null);
+    setForm(emptyClientForm);
+    setError("");
+    setSuccess("");
+  }
+
   function openEditClientForm(client: ClientItem) {
+    setSelectedClientId(null);
     setEditingClientId(client.id);
     setForm({
       name: client.name,
@@ -400,9 +414,16 @@ export function ClientsManager() {
     setSuccess("");
 
     try {
+      if (user) {
+        await deleteClientDiarioData(user.uid, client.id);
+      }
+
       await deleteDoc(doc(db, clientsCollectionPath, client.id));
       setSuccess("Cliente eliminato.");
       showToast("Cliente eliminato.");
+      if (selectedClientId === client.id) {
+        setSelectedClientId(null);
+      }
       if (editingClientId === client.id) {
         closeForm();
       }
@@ -678,40 +699,61 @@ export function ClientsManager() {
         <EmptyState title="Nessun cliente" description={search ? "Nessun cliente corrisponde alla ricerca." : "Aggiungi o importa il primo cliente."} />
       ) : (
         <div className="grid gap-3">
-          {filteredClients.map((client) => (
-            <Card key={client.id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 gap-3">
-                <div className="grid size-12 shrink-0 place-items-center rounded-full bg-beauty-primary/12 text-beauty-primary">
-                  <Contact className="size-5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-[17px] font-semibold">{`${client.name} ${client.surname ?? ""}`.trim()}</p>
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-beauty-muted">
-                    {client.phone ? <span>{client.phone}</span> : null}
-                    {client.email ? <span>{client.email}</span> : null}
-                    {client.birthDate ? <span>Nata/o: {client.birthDate}</span> : null}
+          {filteredClients.map((client) => {
+            const fullName = `${client.name} ${client.surname ?? ""}`.trim();
+            const isSheetOpen = selectedClientId === client.id;
+
+            return (
+              <div key={client.id} className="space-y-3">
+                <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <div className="grid size-12 shrink-0 place-items-center rounded-full bg-beauty-primary/12 text-beauty-primary">
+                      <Contact className="size-5" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[17px] font-semibold">{fullName}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-beauty-muted">
+                        {client.phone ? <span>{client.phone}</span> : null}
+                        {client.email ? <span>{client.email}</span> : null}
+                        {client.birthDate ? <span>Nata/o: {client.birthDate}</span> : null}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-beauty-subtle">
+                        <span>Creata: {formatDate(client.createdAt)}</span>
+                        <span>Ultima visita: {formatDate(client.lastVisit)}</span>
+                        <span>Appuntamenti: {client.appointmentsCount ?? 0}</span>
+                        <span>Totale: {formatCurrency(client.totalSpent ?? 0)}</span>
+                      </div>
+                      {client.notes ? <p className="mt-2 text-[14px] text-beauty-muted">{client.notes}</p> : null}
+                    </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-beauty-subtle">
-                    <span>Creata: {formatDate(client.createdAt)}</span>
-                    <span>Ultima visita: {formatDate(client.lastVisit)}</span>
-                    <span>Appuntamenti: {client.appointmentsCount ?? 0}</span>
-                    <span>Totale: {formatCurrency(client.totalSpent ?? 0)}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <SecondaryButton type="button" onClick={() => toggleClientSheet(client.id)} className="h-10 px-3">
+                      <NotebookText size={16} aria-hidden="true" />
+                      {isSheetOpen ? "Chiudi scheda" : "Scheda"}
+                    </SecondaryButton>
+                    <SecondaryButton type="button" onClick={() => openEditClientForm(client)} className="h-10 px-3">
+                      <Edit3 size={16} aria-hidden="true" />
+                      Modifica
+                    </SecondaryButton>
+                    <DangerButton type="button" onClick={() => handleDelete(client)} className="h-10 px-3">
+                      <Trash2 size={16} aria-hidden="true" />
+                      Elimina
+                    </DangerButton>
                   </div>
-                  {client.notes ? <p className="mt-2 text-[14px] text-beauty-muted">{client.notes}</p> : null}
-                </div>
+                </Card>
+
+                {isSheetOpen ? (
+                  <Card className="space-y-5">
+                    <div>
+                      <h2 className="text-[20px] font-semibold text-beauty-text">Scheda cliente</h2>
+                      <p className="mt-1 text-[14px] text-beauty-muted">{fullName}</p>
+                    </div>
+                    <ClientDiarioSection clientId={client.id} clientName={fullName} />
+                  </Card>
+                ) : null}
               </div>
-              <div className="flex gap-2">
-                <SecondaryButton type="button" onClick={() => openEditClientForm(client)} className="h-10 px-3">
-                  <Edit3 size={16} aria-hidden="true" />
-                  Modifica
-                </SecondaryButton>
-                <DangerButton type="button" onClick={() => handleDelete(client)} className="h-10 px-3">
-                  <Trash2 size={16} aria-hidden="true" />
-                  Elimina
-                </DangerButton>
-              </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -106,6 +106,54 @@ Campi standard:
 
 I duplicati vanno verificati lato app usando telefono normalizzato ed email.
 
+#### Diario cliente
+
+Ogni scheda cliente puo' avere voci cronologiche nel diario:
+
+```text
+novabeautyUsers/{uid}/clients/{clientId}/diario/{entryId}
+```
+
+Campi standard:
+
+```ts
+{
+  ownerId: string,
+  syncId: string,
+  clientId: string,
+  occurredAt: Timestamp,
+  title: string,
+  text: string,
+  tags: ("PMU" | "Viso" | "Corpo" | "Unghie" | "Ciglia" | "Altro")[],
+  appointmentId: string | null,
+  serviceNameSnapshot: string | null,
+  operatorNameSnapshot: string | null,
+  photosBefore: {
+    id: string,
+    storagePath: string,
+    downloadUrl: string,
+    phase?: "before" | "after"
+  }[],
+  photosAfter: {
+    id: string,
+    storagePath: string,
+    downloadUrl: string,
+    phase?: "before" | "after"
+  }[],
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+Le foto restano legate alla singola voce e sono salvate in Storage con separazione prima/dopo:
+
+```text
+apps/novabeauty/users/{uid}/clients/{clientId}/diario/{entryId}/before/{photoId}.jpg
+apps/novabeauty/users/{uid}/clients/{clientId}/diario/{entryId}/after/{photoId}.jpg
+```
+
+Una voce puo' essere collegata a un appuntamento esistente per importare data, servizio e operatore.
+
 ### Agenda NovaBeauty
 
 Gli appuntamenti sono salvati in:
