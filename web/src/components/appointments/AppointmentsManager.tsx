@@ -3,6 +3,7 @@
 import {
   Timestamp,
   collection,
+  deleteDoc,
   doc,
   increment,
   limit,
@@ -15,7 +16,9 @@ import {
 } from "firebase/firestore";
 import { CalendarPlus, CheckCircle2, Clock, X } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { AppointmentCardMenu } from "@/components/appointments/AppointmentCardMenu";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { FormField } from "@/components/ui/FormField";
@@ -91,6 +94,20 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value || 0);
 }
 
+function appointmentToForm(appointment: AppointmentItem): AppointmentFormState {
+  return {
+    clientId: appointment.clientId,
+    serviceId: appointment.serviceId ?? "",
+    serviceName: appointment.serviceName,
+    date: appointment.date.toDate().toISOString().slice(0, 10),
+    startTime: appointment.startTime,
+    durationMinutes: String(appointment.durationMinutes),
+    price: String(appointment.price),
+    notes: appointment.notes ?? "",
+    status: appointment.status
+  };
+}
+
 export function AppointmentsManager() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -98,7 +115,11 @@ export function AppointmentsManager() {
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [form, setForm] = useState<AppointmentFormState>(emptyForm);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [openMenuAppointmentId, setOpenMenuAppointmentId] = useState<string | null>(null);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<AppointmentItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -166,11 +187,15 @@ export function AppointmentsManager() {
     setSuccess("");
   }
 
-  function hasConflict(startTime: string, durationMinutes: number) {
+  function hasConflict(startTime: string, durationMinutes: number, excludeAppointmentId?: string) {
     const start = toMinutes(startTime);
     const end = start + durationMinutes;
 
     return appointments.some((appointment) => {
+      if (appointment.id === excludeAppointmentId) {
+        return false;
+      }
+
       const sameDate = appointment.date.toDate().toISOString().slice(0, 10) === form.date;
       if (!sameDate || appointment.status === "Annullato") {
         return false;
@@ -200,7 +225,7 @@ export function AppointmentsManager() {
       return;
     }
 
-    if (hasConflict(form.startTime, durationMinutes)) {
+    if (hasConflict(form.startTime, durationMinutes, editingAppointmentId ?? undefined)) {
       setError("Esiste gia un appuntamento in questa fascia oraria.");
       return;
     }
@@ -209,51 +234,118 @@ export function AppointmentsManager() {
     setError("");
     setSuccess("");
 
-    const appointmentRef = doc(collection(db, paths.appointments));
     const endTime = addMinutes(form.startTime, durationMinutes);
     const appointmentDate = Timestamp.fromDate(toDateTime(form.date, form.startTime));
     const clientNameSnapshot = `${selectedClient.name} ${selectedClient.surname ?? ""}`.trim();
+    const appointmentPayload = {
+      ownerId: user.uid,
+      date: appointmentDate,
+      clientId: selectedClient.id,
+      clientNameSnapshot,
+      serviceName,
+      serviceId: form.serviceId || null,
+      price,
+      startTime: form.startTime,
+      endTime,
+      durationMinutes,
+      notes: form.notes.trim() || null,
+      status: form.status,
+      updatedAt: serverTimestamp()
+    };
 
     try {
-      await setDoc(appointmentRef, {
-        ownerId: user.uid,
-        syncId: appointmentRef.id,
-        date: appointmentDate,
-        clientId: selectedClient.id,
-        clientNameSnapshot,
-        serviceName,
-        serviceId: form.serviceId || null,
-        price,
-        startTime: form.startTime,
-        endTime,
-        durationMinutes,
-        notes: form.notes.trim() || null,
-        status: form.status,
-        reminderMinutes: 0,
-        notificationIdentifier: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      if (editingAppointmentId) {
+        await updateDoc(doc(db, paths.appointments, editingAppointmentId), appointmentPayload);
+        setSuccess("Appuntamento aggiornato correttamente.");
+        showToast("Appuntamento aggiornato correttamente.");
+      } else {
+        const appointmentRef = doc(collection(db, paths.appointments));
+        await setDoc(appointmentRef, {
+          ...appointmentPayload,
+          syncId: appointmentRef.id,
+          reminderMinutes: 0,
+          notificationIdentifier: null,
+          createdAt: serverTimestamp()
+        });
 
-      await createNotification({
-        userId: user.uid,
-        title: "Nuovo appuntamento",
-        description: `${clientNameSnapshot} - ${serviceName} - ${form.date} ${form.startTime}`,
-        type: "appointment",
-        priority: "normal",
-        action: "/appointments"
-      });
+        await createNotification({
+          userId: user.uid,
+          title: "Nuovo appuntamento",
+          description: `${clientNameSnapshot} - ${serviceName} - ${form.date} ${form.startTime}`,
+          type: "appointment",
+          priority: "normal",
+          action: "/appointments"
+        });
 
-      setSuccess("Appuntamento creato correttamente.");
-      showToast("Appuntamento creato correttamente.");
+        setSuccess("Appuntamento creato correttamente.");
+        showToast("Appuntamento creato correttamente.");
+      }
+
       setForm(emptyForm);
+      setEditingAppointmentId(null);
       setIsFormOpen(false);
     } catch (saveError) {
       console.error("Appointment save failed", saveError);
-      setError("Non siamo riusciti a salvare l'appuntamento.");
-      showToast("Appuntamento non salvato.", "error");
+      setError(editingAppointmentId ? "Non siamo riusciti ad aggiornare l'appuntamento." : "Non siamo riusciti a salvare l'appuntamento.");
+      showToast(editingAppointmentId ? "Appuntamento non aggiornato." : "Appuntamento non salvato.", "error");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function openCreateForm() {
+    setEditingAppointmentId(null);
+    setForm(emptyForm);
+    setError("");
+    setSuccess("");
+    setIsFormOpen(true);
+  }
+
+  function openEditAppointment(appointment: AppointmentItem) {
+    setEditingAppointmentId(appointment.id);
+    setForm(appointmentToForm(appointment));
+    setError("");
+    setSuccess("");
+    setIsFormOpen(true);
+  }
+
+  function duplicateAppointment(appointment: AppointmentItem) {
+    setEditingAppointmentId(null);
+    setForm({
+      ...appointmentToForm(appointment),
+      status: "Prenotato"
+    });
+    setError("");
+    setSuccess("");
+    setIsFormOpen(true);
+  }
+
+  function requestDeleteAppointment(appointment: AppointmentItem) {
+    setAppointmentToDelete(appointment);
+  }
+
+  async function confirmDeleteAppointment() {
+    if (!paths || !appointmentToDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteDoc(doc(db, paths.appointments, appointmentToDelete.id));
+      showToast("Appuntamento eliminato");
+      setAppointmentToDelete(null);
+
+      if (editingAppointmentId === appointmentToDelete.id) {
+        setEditingAppointmentId(null);
+        setForm(emptyForm);
+        setIsFormOpen(false);
+      }
+    } catch (deleteError) {
+      console.error("Appointment delete failed", deleteError);
+      showToast("Impossibile eliminare l'appuntamento.", "error");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -288,7 +380,7 @@ export function AppointmentsManager() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[14px] text-beauty-muted">Agenda reale salvata in Firestore.</p>
-        <PrimaryButton type="button" onClick={() => setIsFormOpen(true)}>
+        <PrimaryButton type="button" onClick={openCreateForm}>
           <CalendarPlus className="size-5" aria-hidden="true" />
           Nuovo appuntamento
         </PrimaryButton>
@@ -298,10 +390,18 @@ export function AppointmentsManager() {
         <Card className="space-y-5">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-[20px] font-semibold">Crea appuntamento</h2>
+              <h2 className="text-[20px] font-semibold">{editingAppointmentId ? "Modifica appuntamento" : "Crea appuntamento"}</h2>
               <p className="mt-1 text-[14px] text-beauty-muted">Il controllo conflitti usa gli appuntamenti gia presenti nella stessa giornata.</p>
             </div>
-            <SecondaryButton type="button" className="h-10 px-3" onClick={() => setIsFormOpen(false)}>
+            <SecondaryButton
+              type="button"
+              className="h-10 px-3"
+              onClick={() => {
+                setIsFormOpen(false);
+                setEditingAppointmentId(null);
+                setForm(emptyForm);
+              }}
+            >
               <X className="size-4" aria-hidden="true" />
             </SecondaryButton>
           </div>
@@ -333,7 +433,9 @@ export function AppointmentsManager() {
             </div>
             <TextAreaField label="Note" name="notes" value={form.notes} onChange={(event) => updateField("notes", event.target.value)} />
             {error ? <ErrorMessage message={error} /> : null}
-            <PrimaryButton type="submit" disabled={isSubmitting}>{isSubmitting ? "Salvataggio..." : "Crea appuntamento"}</PrimaryButton>
+            <PrimaryButton type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Salvataggio..." : editingAppointmentId ? "Salva modifiche" : "Crea appuntamento"}
+            </PrimaryButton>
           </form>
         </Card>
       ) : null}
@@ -350,8 +452,16 @@ export function AppointmentsManager() {
       ) : (
         <div className="space-y-3">
           {appointments.map((appointment) => (
-            <Card key={appointment.id} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 gap-3">
+            <Card key={appointment.id} className="relative flex flex-col gap-4 pr-3 sm:flex-row sm:items-center sm:justify-between">
+              <AppointmentCardMenu
+                appointment={appointment}
+                isOpen={openMenuAppointmentId === appointment.id}
+                onToggle={setOpenMenuAppointmentId}
+                onEdit={openEditAppointment}
+                onDuplicate={duplicateAppointment}
+                onDelete={requestDeleteAppointment}
+              />
+              <div className="flex min-w-0 gap-3 pr-10">
                 <IconBadge icon={Clock} tone={appointment.status === "Completato" ? "mint" : "primary"} />
                 <div>
                   <p className="text-[16px] font-bold">{appointment.clientNameSnapshot}</p>
@@ -375,6 +485,20 @@ export function AppointmentsManager() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(appointmentToDelete)}
+        title="Eliminare questo appuntamento?"
+        description="L'operazione è definitiva e non può essere annullata."
+        confirmLabel="Elimina"
+        isConfirming={isDeleting}
+        onConfirm={() => void confirmDeleteAppointment()}
+        onCancel={() => {
+          if (!isDeleting) {
+            setAppointmentToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }
