@@ -11,7 +11,7 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { Contact, Edit3, FileUp, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { Contact, Edit3, FileUp, MoreHorizontal, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -179,6 +179,16 @@ function parseVcardContacts(content: string) {
     .filter((contact) => contact.name || contact.phone || contact.email);
 }
 
+function formatImportSummary(added: number, alreadyPresent: number, ignored: number) {
+  const parts = [`${added} aggiunti`, `${alreadyPresent} già presenti`];
+
+  if (ignored > 0) {
+    parts.push(`${ignored} ignorati`);
+  }
+
+  return `Import completato: ${parts.join(", ")}.`;
+}
+
 export function ClientsManager() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -198,11 +208,26 @@ export function ClientsManager() {
   const [isReadingVcard, setIsReadingVcard] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const vcardInputRef = useRef<HTMLInputElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
   const handledEditRef = useRef<string | null>(null);
 
   const clientsCollectionPath = useMemo(() => (user ? clientsPath(user.uid) : null), [user]);
   const isEditing = Boolean(editingClientId);
+  const hasCompletedImport = useMemo(
+    () => clients.some((client) => client.source === "contacts" || client.source === "vcard"),
+    [clients]
+  );
+  const supportsContactPicker = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return false;
+    }
+
+    return Boolean(
+      (navigator as Navigator & { contacts?: { select: (properties: string[], options: { multiple: boolean }) => Promise<ContactPickerContact[]> } }).contacts?.select
+    );
+  }, []);
 
   useEffect(() => {
     const editClientId = searchParams.get("edit");
@@ -228,6 +253,32 @@ export function ClientsManager() {
     setIsFormOpen(true);
     router.replace(routes.clients);
   }, [clients, router, searchParams]);
+
+  useEffect(() => {
+    if (!isActionsMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!actionsMenuRef.current?.contains(event.target as Node)) {
+        setIsActionsMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsActionsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isActionsMenuOpen]);
 
   useEffect(() => {
     if (!user || !clientsCollectionPath) {
@@ -517,6 +568,8 @@ export function ClientsManager() {
     }
 
     const selectedContacts = contactPreview.filter((contact) => contact.selected && !contact.duplicate);
+    const alreadyPresent = contactPreview.filter((contact) => contact.duplicate).length;
+    const ignored = contactPreview.filter((contact) => !contact.duplicate && !contact.selected).length;
 
     if (!selectedContacts.length) {
       setContactImportError("Seleziona almeno un contatto non duplicato.");
@@ -547,9 +600,11 @@ export function ClientsManager() {
         })
       );
 
+      const summary = formatImportSummary(selectedContacts.length, alreadyPresent, ignored);
+
       setContactPreview([]);
-      setSuccess("Contatti importati correttamente.");
-      showToast("Contatti importati correttamente.");
+      setSuccess(summary);
+      showToast(summary);
     } catch (importSaveError) {
       console.error("Contact import save failed", importSaveError);
       setContactImportError("Non siamo riusciti a salvare i contatti selezionati.");
@@ -557,11 +612,21 @@ export function ClientsManager() {
     }
   }
 
+  function openVcardImport() {
+    setIsActionsMenuOpen(false);
+    vcardInputRef.current?.click();
+  }
+
+  function openContactImport() {
+    setIsActionsMenuOpen(false);
+    void handleContactImport();
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[14px] text-beauty-muted">Anagrafica completa salvata nel namespace NovaBeauty.</p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <input
             ref={vcardInputRef}
             className="hidden"
@@ -569,14 +634,46 @@ export function ClientsManager() {
             accept=".vcf,text/vcard,text/x-vcard"
             onChange={handleVcardFileChange}
           />
-          <SecondaryButton type="button" onClick={() => vcardInputRef.current?.click()} disabled={isReadingVcard}>
-            <FileUp size={18} aria-hidden="true" />
-            {isReadingVcard ? "Lettura..." : "Importa vCard (.vcf)"}
-          </SecondaryButton>
-          <SecondaryButton type="button" onClick={handleContactImport}>
-            <Upload size={18} aria-hidden="true" />
-            Importa da rubrica
-          </SecondaryButton>
+          {hasCompletedImport ? (
+            <div className="relative" ref={actionsMenuRef}>
+              <SecondaryButton
+                type="button"
+                onClick={() => setIsActionsMenuOpen((current) => !current)}
+                className="h-10 px-3"
+                aria-expanded={isActionsMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Altre azioni"
+              >
+                <MoreHorizontal className="size-4" aria-hidden="true" />
+                Altre azioni
+              </SecondaryButton>
+              {isActionsMenuOpen ? (
+                <Card className="absolute right-0 top-full z-20 mt-2 w-56 space-y-2 p-2 shadow-beauty-floating">
+                  <SecondaryButton type="button" onClick={openVcardImport} disabled={isReadingVcard} className="h-10 w-full justify-start px-3">
+                    <FileUp className="size-4" aria-hidden="true" />
+                    {isReadingVcard ? "Lettura..." : "Importa vCard (.vcf)"}
+                  </SecondaryButton>
+                  {supportsContactPicker ? (
+                    <SecondaryButton type="button" onClick={openContactImport} className="h-10 w-full justify-start px-3">
+                      <Upload className="size-4" aria-hidden="true" />
+                      Importa da rubrica
+                    </SecondaryButton>
+                  ) : null}
+                </Card>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              <SecondaryButton type="button" onClick={openVcardImport} disabled={isReadingVcard}>
+                <FileUp size={18} aria-hidden="true" />
+                {isReadingVcard ? "Lettura..." : "Importa vCard (.vcf)"}
+              </SecondaryButton>
+              <SecondaryButton type="button" onClick={openContactImport}>
+                <Upload size={18} aria-hidden="true" />
+                Importa da rubrica
+              </SecondaryButton>
+            </>
+          )}
           <PrimaryButton type="button" onClick={openNewClientForm}>
             <Plus size={18} aria-hidden="true" />
             Nuovo cliente
