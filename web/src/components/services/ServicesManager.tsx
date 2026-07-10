@@ -28,6 +28,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { db } from "@/lib/firebase/client";
 import { servicesPath } from "@/lib/firebase/paths";
+import {
+  buildTemplateImportSummary,
+  formatServiceMeta,
+  getServiceCategoryIcon
+} from "@/lib/utils/service-display";
 import type { ServiceDocument } from "@/types/firestore";
 
 type ServiceItem = ServiceDocument & { id: string };
@@ -44,8 +49,7 @@ type ServiceFormState = {
 type TemplateService = {
   name: string;
   category: string;
-  durationMinutes: number;
-  description: string;
+  active?: boolean;
 };
 
 type TemplatePreviewItem = TemplateService & {
@@ -57,42 +61,44 @@ type TemplatePreviewItem = TemplateService & {
 const templateId = "beauty-center-essential";
 
 const essentialBeautyTemplate: TemplateService[] = [
-  { name: "Pulizia viso base", category: "Viso", durationMinutes: 60, description: "Trattamento viso essenziale con detersione e riequilibrio." },
-  { name: "Trattamento viso idratante", category: "Viso", durationMinutes: 60, description: "Trattamento pensato per pelle disidratata o spenta." },
-  { name: "Trattamento viso purificante", category: "Viso", durationMinutes: 60, description: "Trattamento indicato per pelle impura o congestionata." },
-  { name: "Massaggio viso", category: "Viso", durationMinutes: 30, description: "Massaggio rilassante e drenante per viso e collo." },
-  { name: "Ceretta sopracciglia", category: "Epilazione", durationMinutes: 15, description: "Definizione sopracciglia con epilazione." },
-  { name: "Ceretta baffetti", category: "Epilazione", durationMinutes: 10, description: "Epilazione zona labiale superiore." },
-  { name: "Ceretta ascelle", category: "Epilazione", durationMinutes: 15, description: "Epilazione ascelle." },
-  { name: "Ceretta braccia", category: "Epilazione", durationMinutes: 30, description: "Epilazione braccia." },
-  { name: "Ceretta mezza gamba", category: "Epilazione", durationMinutes: 30, description: "Epilazione mezza gamba." },
-  { name: "Ceretta gamba intera", category: "Epilazione", durationMinutes: 45, description: "Epilazione gamba completa." },
-  { name: "Ceretta inguine", category: "Epilazione", durationMinutes: 25, description: "Epilazione inguine." },
-  { name: "Manicure base", category: "Mani", durationMinutes: 40, description: "Cura estetica delle mani e delle unghie." },
-  { name: "Applicazione semipermanente mani", category: "Mani", durationMinutes: 60, description: "Applicazione smalto semipermanente mani." },
-  { name: "Rimozione semipermanente mani", category: "Mani", durationMinutes: 30, description: "Rimozione delicata dello smalto semipermanente." },
-  { name: "Ricostruzione unghie gel", category: "Mani", durationMinutes: 120, description: "Servizio completo di ricostruzione unghie." },
-  { name: "Refill gel", category: "Mani", durationMinutes: 90, description: "Ritocco periodico della ricostruzione gel." },
-  { name: "Pedicure estetico", category: "Piedi", durationMinutes: 50, description: "Cura estetica dei piedi e delle unghie." },
-  { name: "Pedicure con semipermanente", category: "Piedi", durationMinutes: 70, description: "Pedicure estetico con applicazione semipermanente." },
-  { name: "Laminazione ciglia", category: "Ciglia e sopracciglia", durationMinutes: 60, description: "Trattamento per valorizzare la curvatura naturale delle ciglia." },
-  { name: "Tinta ciglia", category: "Ciglia e sopracciglia", durationMinutes: 30, description: "Colorazione estetica delle ciglia." },
-  { name: "Laminazione sopracciglia", category: "Ciglia e sopracciglia", durationMinutes: 45, description: "Trattamento per ordinare e valorizzare le sopracciglia." },
-  { name: "Tinta sopracciglia", category: "Ciglia e sopracciglia", durationMinutes: 25, description: "Colorazione estetica delle sopracciglia." },
-  { name: "Massaggio rilassante", category: "Massaggi", durationMinutes: 50, description: "Massaggio corpo a ritmo lento e distensivo." },
-  { name: "Massaggio decontratturante", category: "Massaggi", durationMinutes: 50, description: "Massaggio mirato alle tensioni muscolari." },
-  { name: "Massaggio drenante", category: "Massaggi", durationMinutes: 50, description: "Massaggio corpo con manualita drenanti." },
-  { name: "Trattamento corpo scrub", category: "Corpo", durationMinutes: 45, description: "Esfoliazione corpo per rendere la pelle piu liscia." },
-  { name: "Trattamento corpo idratante", category: "Corpo", durationMinutes: 60, description: "Trattamento corpo nutriente e idratante." },
-  { name: "Bendaggio corpo", category: "Corpo", durationMinutes: 60, description: "Trattamento corpo con bendaggi estetici." },
-  { name: "Pressoterapia", category: "Corpo", durationMinutes: 45, description: "Seduta corpo con apparecchiatura pressoria." },
-  { name: "Consulenza estetica", category: "Consulenza", durationMinutes: 20, description: "Incontro iniziale per valutare percorso e trattamenti." }
+  { name: "Pulizia viso", category: "Viso e corpo" },
+  { name: "Scrub esfoliante", category: "Viso e corpo" },
+  { name: "Fanghi", category: "Viso e corpo" },
+  { name: "Pressoterapia", category: "Viso e corpo" },
+  { name: "Vacuum", category: "Viso e corpo" },
+  { name: "Massaggio rilassante", category: "Viso e corpo" },
+  { name: "Massaggio viso", category: "Viso e corpo" },
+  { name: "Massaggio drenante", category: "Viso e corpo" },
+  { name: "Massaggio esfoliante", category: "Viso e corpo" },
+  { name: "Massaggio anticellulite", category: "Viso e corpo" },
+  { name: "Massaggio linfodrenante", category: "Viso e corpo" },
+  { name: "Cera completa", category: "Epilazione" },
+  { name: "Cera inguine", category: "Epilazione" },
+  { name: "Cera braccia", category: "Epilazione" },
+  { name: "Cera gambaletto", category: "Epilazione" },
+  { name: "Cera sopracciglia", category: "Epilazione" },
+  { name: "Cera ascelle", category: "Epilazione" },
+  { name: "Cera baffetto", category: "Epilazione" },
+  { name: "Epilazione viso", category: "Epilazione" },
+  { name: "Filo arabo", category: "Epilazione" },
+  { name: "Ricostruzione in gel o acrygel", category: "Unghie e mani/piedi" },
+  { name: "Refill gel o acrygel", category: "Unghie e mani/piedi" },
+  { name: "Semipermanente mani", category: "Unghie e mani/piedi" },
+  { name: "Semipermanente piedi", category: "Unghie e mani/piedi" },
+  { name: "Pedicure estetico", category: "Unghie e mani/piedi" },
+  { name: "Pedicure curativo", category: "Unghie e mani/piedi" },
+  { name: "Manicure", category: "Unghie e mani/piedi" },
+  { name: "Trucco permanente sopracciglia", category: "Trucco e PMU" },
+  { name: "Trucco permanente labbra", category: "Trucco e PMU" },
+  { name: "Trucco cerimonia", category: "Trucco e PMU" },
+  { name: "Laminazione ciglia", category: "Ciglia e sopracciglia" },
+  { name: "Laminazione sopracciglia", category: "Ciglia e sopracciglia" }
 ];
 
 const emptyForm: ServiceFormState = {
   name: "",
   category: "",
-  durationMinutes: "60",
+  durationMinutes: "",
   price: "",
   description: "",
   active: true
@@ -102,12 +108,24 @@ function normalize(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
 
-function formatPrice(price: number | null | undefined) {
-  if (typeof price !== "number") {
-    return "Prezzo da impostare";
+function parseOptionalDuration(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
   }
 
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(price);
+  const duration = Number(trimmed);
+  return Number.isFinite(duration) && duration > 0 ? duration : null;
+}
+
+function parseOptionalPrice(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const price = Number(trimmed);
+  return Number.isFinite(price) && price >= 0 ? price : null;
 }
 
 export function ServicesManager() {
@@ -155,9 +173,15 @@ export function ServicesManager() {
 
   const categories = useMemo(() => Array.from(new Set(filteredServices.map((service) => service.category || "Senza categoria"))), [filteredServices]);
 
-  function hasDuplicate(name: string, excludedServiceId?: string) {
+  function hasDuplicate(name: string, category: string, excludedServiceId?: string) {
     const normalizedName = normalize(name);
-    return services.some((service) => service.id !== excludedServiceId && normalize(service.name) === normalizedName);
+    const normalizedCategory = normalize(category);
+    return services.some(
+      (service) =>
+        service.id !== excludedServiceId &&
+        normalize(service.name) === normalizedName &&
+        normalize(service.category) === normalizedCategory
+    );
   }
 
   function updateField(field: keyof ServiceFormState, value: string | boolean) {
@@ -178,7 +202,7 @@ export function ServicesManager() {
     setForm({
       name: service.name,
       category: service.category ?? "",
-      durationMinutes: String(service.durationMinutes ?? 60),
+      durationMinutes: typeof service.durationMinutes === "number" && service.durationMinutes > 0 ? String(service.durationMinutes) : "",
       price: typeof service.price === "number" ? String(service.price) : "",
       description: service.description ?? "",
       active: service.active ?? true
@@ -202,13 +226,25 @@ export function ServicesManager() {
       return;
     }
 
-    if (!form.name.trim() || !form.category.trim() || !Number(form.durationMinutes)) {
-      setError("Compila nome, categoria e durata.");
+    if (!form.name.trim() || !form.category.trim()) {
+      setError("Compila nome e categoria.");
       return;
     }
 
-    if (hasDuplicate(form.name, editingServiceId ?? undefined)) {
-      setError("Esiste gia un servizio con questo nome.");
+    const durationMinutes = parseOptionalDuration(form.durationMinutes);
+    if (form.durationMinutes.trim() && durationMinutes === null) {
+      setError("La durata deve essere un numero positivo oppure lasciata vuota.");
+      return;
+    }
+
+    const price = parseOptionalPrice(form.price);
+    if (form.price.trim() && price === null) {
+      setError("Il prezzo deve essere un numero valido oppure lasciato vuoto.");
+      return;
+    }
+
+    if (hasDuplicate(form.name, form.category, editingServiceId ?? undefined)) {
+      setError("Esiste gia un servizio con questo nome e categoria.");
       return;
     }
 
@@ -220,8 +256,8 @@ export function ServicesManager() {
       ownerId: user.uid,
       name: form.name.trim(),
       category: form.category.trim(),
-      durationMinutes: Number(form.durationMinutes),
-      price: form.price === "" ? null : Number(form.price),
+      durationMinutes,
+      price,
       description: form.description.trim() || null,
       active: form.active,
       source: "manual" as const,
@@ -280,8 +316,8 @@ export function ServicesManager() {
       essentialBeautyTemplate.map((service, index) => ({
         ...service,
         id: `${templateId}-${index}`,
-        selected: !hasDuplicate(service.name),
-        duplicate: hasDuplicate(service.name)
+        selected: !hasDuplicate(service.name, service.category),
+        duplicate: hasDuplicate(service.name, service.category)
       }))
     );
     setError("");
@@ -294,6 +330,9 @@ export function ServicesManager() {
     }
 
     const selectedServices = templatePreview.filter((service) => service.selected && !service.duplicate);
+    const alreadyPresent = templatePreview.filter((service) => service.duplicate).length;
+    const ignored = templatePreview.filter((service) => !service.selected && !service.duplicate).length;
+
     if (!selectedServices.length) {
       setError("Seleziona almeno un servizio non duplicato.");
       return;
@@ -303,7 +342,7 @@ export function ServicesManager() {
     setError("");
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         selectedServices.map((service) => {
           const serviceRef = doc(collection(db, collectionPath));
           return setDoc(serviceRef, {
@@ -311,10 +350,10 @@ export function ServicesManager() {
             syncId: serviceRef.id,
             name: service.name,
             category: service.category,
-            durationMinutes: service.durationMinutes,
             price: null,
-            description: service.description,
-            active: true,
+            durationMinutes: null,
+            description: null,
+            active: service.active ?? true,
             source: "template",
             templateId,
             createdAt: serverTimestamp(),
@@ -323,9 +362,23 @@ export function ServicesManager() {
         })
       );
 
+      const added = results.filter((result) => result.status === "fulfilled").length;
+      const errors = results.filter((result) => result.status === "rejected").length;
+
+      if (errors > 0) {
+        console.error("Service template import partial failure", results);
+      }
+
       setTemplatePreview([]);
-      setSuccess("Template servizi importato. Ora puoi impostare i prezzi.");
-      showToast("Template servizi importato.");
+      const summary = buildTemplateImportSummary({ added, alreadyPresent, ignored, errors });
+
+      if (added > 0) {
+        setSuccess(`${summary}\nOra puoi impostare prezzi e dettagli.`);
+        showToast(summary.replace(/\n/g, " "));
+      } else {
+        setError(`${summary}\nNessun servizio importato.`);
+        showToast("Import non completato.", "error");
+      }
     } catch (templateError) {
       console.error("Service template import failed", templateError);
       setError("Non siamo riusciti a importare il template.");
@@ -357,7 +410,7 @@ export function ServicesManager() {
           <div>
             <p className="text-[16px] font-bold text-beauty-text">Template Centro estetico essenziale</p>
             <p className="mt-1 text-[13px] leading-5 text-beauty-muted">
-              Importa servizi comuni con durata e descrizione. Il prezzo resta vuoto e va inserito dallo studio.
+              Importa i servizi principali del centro estetico. Prezzi e dettagli restano personalizzabili.
             </p>
           </div>
         </div>
@@ -406,7 +459,7 @@ export function ServicesManager() {
                 <span className="min-w-0">
                   <span className="block font-semibold text-beauty-text">{service.name}</span>
                   <span className="block text-[13px] text-beauty-muted">
-                    {service.category} - {service.durationMinutes} min - prezzo da impostare
+                    {service.category} - prezzo e dettagli da impostare
                   </span>
                   {service.duplicate ? <span className="text-[12px] text-beauty-danger">Duplicato rilevato</span> : null}
                 </span>
@@ -424,7 +477,7 @@ export function ServicesManager() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-[20px] font-semibold">{isEditing ? "Modifica servizio" : "Nuovo servizio"}</h2>
-              <p className="mt-1 text-[14px] text-beauty-muted">Il prezzo puo restare vuoto finche non viene deciso dallo studio.</p>
+              <p className="mt-1 text-[14px] text-beauty-muted">Prezzo e durata possono restare vuoti finche non vengono decisi dallo studio.</p>
             </div>
             <SecondaryButton type="button" onClick={closeForm} className="h-10 px-3">
               <X className="size-4" aria-hidden="true" />
@@ -434,7 +487,7 @@ export function ServicesManager() {
             <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Nome servizio" name="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required disabled={isSubmitting} />
               <FormField label="Categoria" name="category" value={form.category} onChange={(event) => updateField("category", event.target.value)} required disabled={isSubmitting} />
-              <FormField label="Durata minuti" name="durationMinutes" type="number" min={5} step={5} value={form.durationMinutes} onChange={(event) => updateField("durationMinutes", event.target.value)} required disabled={isSubmitting} />
+              <FormField label="Durata minuti" name="durationMinutes" type="number" min={5} step={5} value={form.durationMinutes} onChange={(event) => updateField("durationMinutes", event.target.value)} placeholder="Da impostare" disabled={isSubmitting} />
               <FormField label="Prezzo" name="price" type="number" min={0} step="0.01" value={form.price} onChange={(event) => updateField("price", event.target.value)} placeholder="Da impostare" disabled={isSubmitting} />
             </div>
             <TextAreaField label="Descrizione" name="description" value={form.description} onChange={(event) => updateField("description", event.target.value)} disabled={isSubmitting} />
@@ -459,9 +512,15 @@ export function ServicesManager() {
         <EmptyState title="Nessun servizio" description={search ? "Nessun servizio corrisponde alla ricerca." : "Importa un template o crea il primo servizio."} />
       ) : (
         <div className="space-y-5">
-          {categories.map((category) => (
+          {categories.map((category) => {
+            const CategoryIcon = getServiceCategoryIcon(category);
+
+            return (
             <section key={category} className="space-y-3">
-              <h2 className="text-[18px] font-bold text-beauty-text">{category}</h2>
+              <h2 className="flex items-center gap-2 text-[18px] font-bold text-beauty-text">
+                <CategoryIcon aria-hidden="true" className="size-[18px] text-beauty-muted" strokeWidth={2} />
+                {category}
+              </h2>
               <div className="grid gap-3">
                 {filteredServices
                   .filter((service) => (service.category || "Senza categoria") === category)
@@ -472,9 +531,11 @@ export function ServicesManager() {
                         <div className="min-w-0">
                           <p className="truncate text-[17px] font-semibold text-beauty-text">{service.name}</p>
                           <p className="mt-1 text-[13px] text-beauty-muted">
-                            {service.durationMinutes} min - {formatPrice(service.price)}
+                            {formatServiceMeta(service.durationMinutes, service.price)}
                           </p>
-                          {service.description ? <p className="mt-2 text-[13px] leading-5 text-beauty-subtle">{service.description}</p> : null}
+                          {service.description ? (
+                            <p className="mt-2 text-[13px] leading-5 text-beauty-subtle">{service.description}</p>
+                          ) : null}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -491,7 +552,8 @@ export function ServicesManager() {
                   ))}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

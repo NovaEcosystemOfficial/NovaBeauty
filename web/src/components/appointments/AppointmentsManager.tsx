@@ -153,7 +153,10 @@ export function AppointmentsManager() {
           ...current,
           serviceId: value,
           serviceName: selectedService?.name ?? current.serviceName,
-          durationMinutes: selectedService ? String(selectedService.durationMinutes) : current.durationMinutes,
+          durationMinutes:
+            selectedService?.durationMinutes != null && selectedService.durationMinutes > 0
+              ? String(selectedService.durationMinutes)
+              : "",
           price: selectedService && typeof selectedService.price === "number" ? String(selectedService.price) : current.price
         };
       }
