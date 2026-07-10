@@ -3,5 +3,5 @@ type SuccessMessageProps = {
 };
 
 export function SuccessMessage({ message }: SuccessMessageProps) {
-  return <p className="text-[13px] text-beauty-success">{message}</p>;
+  return <p className="whitespace-pre-line text-[13px] text-beauty-success">{message}</p>;
 }

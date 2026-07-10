@@ -63,7 +63,7 @@ export type ServiceDocument = {
   name: string;
   category: string;
   price: number | null;
-  durationMinutes: number;
+  durationMinutes: number | null;
   description: string | null;
   active: boolean;
   source: "manual" | "template";

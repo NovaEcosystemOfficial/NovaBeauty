@@ -3,5 +3,5 @@ type ErrorMessageProps = {
 };
 
 export function ErrorMessage({ message }: ErrorMessageProps) {
-  return <p className="text-[13px] text-beauty-danger">{message}</p>;
+  return <p className="whitespace-pre-line text-[13px] text-beauty-danger">{message}</p>;
 }
