@@ -57,6 +57,37 @@ export type ClientDocument = {
   updatedAt: Timestamp;
 };
 
+export const DIARIO_TAGS = ["PMU", "Viso", "Corpo", "Unghie", "Ciglia", "Altro"] as const;
+export type DiarioTag = (typeof DIARIO_TAGS)[number];
+
+export type DiarioPhotoPhase = "before" | "after";
+
+export type DiarioPhoto = {
+  id: string;
+  storagePath: string;
+  downloadUrl: string;
+  phase?: DiarioPhotoPhase;
+};
+
+export type DiarioEntryDocument = {
+  ownerId: string;
+  syncId: string;
+  clientId: string;
+  occurredAt: Timestamp;
+  title: string;
+  text: string;
+  tags: DiarioTag[];
+  appointmentId: string | null;
+  serviceNameSnapshot: string | null;
+  operatorNameSnapshot: string | null;
+  photosBefore: DiarioPhoto[];
+  photosAfter: DiarioPhoto[];
+  /** @deprecated Legacy single-gallery photos kept for backward compatibility. */
+  photos?: DiarioPhoto[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
 export type ServiceDocument = {
   ownerId: string;
   syncId: string;
