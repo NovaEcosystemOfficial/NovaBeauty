@@ -16,6 +16,10 @@ export const routes = {
   studio: "/studio",
   studioMioStudio: "/studio/mio-studio",
   studioMagazzino: "/studio/magazzino",
+  studioMagazzinoProdotti: "/studio/magazzino/prodotti",
+  studioMagazzinoFornitori: "/studio/magazzino/fornitori",
+  studioMagazzinoDaOrdinare: "/studio/magazzino/da-ordinare",
+  studioMagazzinoMovimenti: "/studio/magazzino/movimenti",
   studioSettings: "/studio/settings",
   notifications: "/notifications",
   profile: "/profile"

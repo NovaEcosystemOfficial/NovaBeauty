@@ -1,5 +1,5 @@
-import { InventoryManager } from "@/components/studio/InventoryManager";
+import { MagazzinoHome } from "@/components/magazzino/MagazzinoHome";
 
 export default function StudioMagazzinoPage() {
-  return <InventoryManager />;
+  return <MagazzinoHome />;
 }

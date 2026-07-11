@@ -116,6 +116,59 @@ export type ProductDocument = {
   updatedAt: Timestamp;
 };
 
+export type MagazzinoProductDocument = {
+  ownerId: string;
+  syncId: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  supplierId?: string | null;
+  supplierNameSnapshot?: string | null;
+  quantity: number;
+  minimumQuantity: number;
+  purchasePrice?: number | null;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  internalCode?: string | null;
+  barcode?: string | null;
+  notes?: string | null;
+  active?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type SupplierDocument = {
+  ownerId: string;
+  syncId: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  website?: string | null;
+  catalogUrl?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  active?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
+export type StockMovementType = "carico" | "scarico" | "correzione";
+
+export type StockMovementDocument = {
+  ownerId: string;
+  syncId: string;
+  type: StockMovementType;
+  date: Timestamp;
+  productId: string;
+  productNameSnapshot: string;
+  quantity: number;
+  operatorName?: string | null;
+  notes?: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
 export type AppointmentDocument = {
   ownerId: string;
   syncId: string;
