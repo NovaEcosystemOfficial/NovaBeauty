@@ -273,7 +273,42 @@ Uso:
 
 ## products opzionale
 
-Collection opzionale, solo se si decide di portare il magazzino originale:
+Collection opzionale legacy. Per il nuovo magazzino NovaBeauty usare `inventory`.
+
+## inventory
+
+Namespace riservato al Magazzino NovaBeauty sotto Studio:
+
+```text
+novabeautyUsers/{userId}/inventory/{productId}
+```
+
+Struttura iniziale prevista:
+
+```ts
+{
+  ownerId: string,
+  syncId?: string,
+  name: string,
+  brand?: string | null,
+  category?: string | null,
+  quantity?: number | null,
+  minimumStock?: number | null,
+  unit?: string | null,
+  notes?: string | null,
+  active?: boolean,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+Uso attuale:
+
+- Pagina strutturale sotto Studio.
+- Nessun dato mock.
+- Nessuna modifica distruttiva ai dati esistenti.
+
+## products opzionale legacy
 
 ```text
 novabeautyUsers/{userId}/products/{productId}

@@ -13,5 +13,13 @@ export const routes = {
   appointmentsForClient: (clientId: string) => `/appointments?clientId=${clientId}`,
   services: "/services",
   statistics: "/statistics",
+  studio: "/studio",
+  studioMagazzino: "/studio/magazzino",
+  studioSettings: "/studio/settings",
+  notifications: "/notifications",
   profile: "/profile"
 } as const;
+
+export function isStudioSectionPath(pathname: string) {
+  return pathname === routes.studio || pathname.startsWith("/studio/") || pathname === routes.notifications;
+}

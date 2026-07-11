@@ -171,3 +171,18 @@ export type SettingsDocument = {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
+
+export type InventoryProductDocument = {
+  ownerId: string;
+  syncId?: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  quantity?: number | null;
+  minimumStock?: number | null;
+  unit?: string | null;
+  notes?: string | null;
+  active?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};

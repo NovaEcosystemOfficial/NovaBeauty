@@ -2,6 +2,20 @@
 
 Registro delle modifiche infrastrutturali.
 
+## 2026-07-11
+
+### Added
+
+- Introdotto **Studio** come hub operativo NovaBeauty nella bottom navigation.
+- Notifiche spostate sotto Studio mantenendo la route `/notifications` compatibile.
+- Predisposto namespace `novabeautyUsers/{uid}/inventory/{productId}` per il futuro Magazzino.
+- Aggiunta pagina iniziale Magazzino e Impostazioni app sotto Studio.
+
+### Notes
+
+- Nessuna modifica distruttiva a notifiche push, token FCM o cronologia esistenti.
+- La collection legacy `products` resta documentata ma non viene sostituita da `inventory`.
+
 ## 2026-07-05
 
 ### Added

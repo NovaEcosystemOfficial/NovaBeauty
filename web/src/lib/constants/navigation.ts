@@ -20,9 +20,9 @@ export const mainNavigation = [
     icon: "services"
   },
   {
-    label: "Notifiche",
-    href: "/notifications",
-    icon: "notifications"
+    label: "Studio",
+    href: "/studio",
+    icon: "studio"
   },
   {
     label: "Profilo",

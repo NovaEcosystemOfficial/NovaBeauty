@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/client";
 import { notificationsPath } from "@/lib/firebase/paths";
 
-export function NotificationBadge() {
+export function useUnreadNotificationCount() {
   const { user } = useAuth();
   const [count, setCount] = useState(0);
 
@@ -33,6 +33,12 @@ export function NotificationBadge() {
 
     return unsubscribe;
   }, [user]);
+
+  return count;
+}
+
+export function NotificationBadge() {
+  const count = useUnreadNotificationCount();
 
   if (!count) {
     return null;

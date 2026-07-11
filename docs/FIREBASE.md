@@ -70,6 +70,7 @@ novabeautyUsers/{uid}/clients/{clientId}
 novabeautyUsers/{uid}/appointments/{appointmentId}
 novabeautyUsers/{uid}/services/{serviceId}
 novabeautyUsers/{uid}/products/{productId}
+novabeautyUsers/{uid}/inventory/{productId}
 novabeautyUsers/{uid}/notifications/{notificationId}
 novabeautyUsers/{uid}/messagingTokens/{tokenId}
 ```
@@ -218,6 +219,34 @@ Campi standard:
 
 I template NovaBeauty possono precompilare nome, categoria, durata e descrizione.
 Il prezzo resta `null` finche' non viene impostato dallo studio.
+
+### Magazzino NovaBeauty (inventory)
+
+Il Magazzino sotto Studio usa il namespace:
+
+```text
+novabeautyUsers/{uid}/inventory/{productId}
+```
+
+Struttura iniziale prevista, senza obbligo di tutti i campi:
+
+```ts
+{
+  ownerId: string,
+  name: string,
+  brand?: string | null,
+  category?: string | null,
+  quantity?: number | null,
+  minimumStock?: number | null,
+  unit?: string | null,
+  notes?: string | null,
+  active?: boolean,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+La collection legacy `products` non viene rimossa ne' migrata in questa milestone.
 
 ### Notifiche NovaBeauty
 

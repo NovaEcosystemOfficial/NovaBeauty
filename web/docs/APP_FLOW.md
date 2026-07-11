@@ -17,11 +17,14 @@ Schermate principali:
 - Servizi.
 - Statistiche.
 - Profilo.
+- Studio (hub operativo).
+- Notifiche (accessibili da Studio).
+- Magazzino (struttura iniziale sotto Studio).
 
 Schermate da non portare come feature principale:
 
 - Scelta attivita' multi-target, perche' NovaBeauty e' solo per estetiste.
-- Magazzino, salvo decisione successiva. In Beauty Souls esiste, ma il nuovo target iniziale richiesto e' il flusso estetiste: Login, Dashboard, Clienti, Appuntamenti, Servizi, Profilo.
+- Magazzino completo, salvo milestone successive. La struttura iniziale e' gia' predisposta sotto Studio.
 - Landing statica `index.html`, perche' non e' la PWA gestionale.
 
 ## Navigazione completa
@@ -58,11 +61,17 @@ Dashboard
   -> Clienti
   -> Appuntamenti
   -> Servizi
-  -> Statistiche
+  -> Studio
+    -> Notifiche
+    -> Magazzino
+    -> Profilo attivita'
+    -> Impostazioni app
   -> Profilo
 ```
 
-La navigazione mobile deve usare una Bottom Navigation fedele alla TabView iOS.
+La navigazione mobile usa una Bottom Navigation con le voci: Home, Clienti, Agenda, Servizi, Studio, Profilo.
+
+Il badge notifiche non lette compare sull'icona Studio. La route `/notifications` resta compatibile.
 
 ## User flow richiesto
 
