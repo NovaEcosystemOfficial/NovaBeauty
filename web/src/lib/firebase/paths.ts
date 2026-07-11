@@ -6,6 +6,8 @@ export const clientsPath = (userId: string) => `novabeautyUsers/${userId}/client
 export const servicesPath = (userId: string) => `novabeautyUsers/${userId}/services`;
 export const appointmentsPath = (userId: string) => `novabeautyUsers/${userId}/appointments`;
 export const productsPath = (userId: string) => `novabeautyUsers/${userId}/products`;
+export const suppliersPath = (userId: string) => `novabeautyUsers/${userId}/suppliers`;
+export const stockMovementsPath = (userId: string) => `novabeautyUsers/${userId}/stockMovements`;
 export const inventoryPath = (userId: string) => `novabeautyUsers/${userId}/inventory`;
 export const notificationsPath = (userId: string) => `novabeautyUsers/${userId}/notifications`;
 export const messagingTokensPath = (userId: string) => `novabeautyUsers/${userId}/messagingTokens`;
