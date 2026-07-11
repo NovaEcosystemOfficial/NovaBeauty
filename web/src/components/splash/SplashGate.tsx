@@ -5,10 +5,8 @@ import { NovaBeautySplash } from "@/components/splash/NovaBeautySplash";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SPLASH_SESSION_KEY = "novabeauty-splash-complete";
-const SPLASH_MIN_MS = 1800;
-const SPLASH_SEQUENCE_MS = 2200;
-const SPLASH_HOLD_MS = 800;
-const SPLASH_FADE_MS = 600;
+const SPLASH_MIN_MS = 2000;
+const SPLASH_FADE_OUT_MS = 450;
 
 type SplashGateProps = {
   children: ReactNode;
@@ -42,16 +40,13 @@ export function SplashGate({ children }: SplashGateProps) {
       }
 
       const elapsed = Date.now() - startedAt;
-      const sequenceComplete = elapsed >= SPLASH_SEQUENCE_MS + SPLASH_HOLD_MS;
-      const minimumReached = elapsed >= SPLASH_MIN_MS;
-
-      if (sequenceComplete && minimumReached) {
+      if (elapsed >= SPLASH_MIN_MS) {
         window.clearInterval(intervalId);
         setFadingOut(true);
         dismissTimerRef.current = window.setTimeout(() => {
           setShowSplash(false);
           sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
-        }, SPLASH_FADE_MS);
+        }, SPLASH_FADE_OUT_MS);
       }
     }, 40);
 
