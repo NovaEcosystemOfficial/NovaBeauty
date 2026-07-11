@@ -3,6 +3,7 @@
 import { Download, Share } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SecondaryButton } from "@/components/ui/SecondaryButton";
+import { isCapacitorNative } from "@/lib/native/capacitor-runtime";
 
 const dismissedStorageKey = "novabeauty-install-dismissed-at";
 const dismissDurationMs = 1000 * 60 * 60 * 24 * 7;
@@ -79,7 +80,7 @@ export function InstallPrompt() {
     setInstallEvent(null);
   }
 
-  if (installed || dismissed || (!installEvent && !showIosHint)) {
+  if (isCapacitorNative() || installed || dismissed || (!installEvent && !showIosHint)) {
     return null;
   }
 

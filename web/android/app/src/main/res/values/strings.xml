@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NovaBeauty</string>
+    <string name="title_activity_main">NovaBeauty</string>
+    <string name="package_name">com.novaecosystem.novabeauty</string>
+    <string name="custom_url_scheme">com.novaecosystem.novabeauty</string>
+</resources>
