@@ -7,6 +7,7 @@ import {
   updateDoc,
   type Timestamp
 } from "firebase/firestore";
+import { routes } from "@/lib/constants/routes";
 import { db } from "@/lib/firebase/client";
 import { messagingTokensPath, notificationsPath } from "@/lib/firebase/paths";
 import type { NotificationCategory, NotificationPriority } from "@/types/firestore";
@@ -51,7 +52,7 @@ export async function createWelcomeNotification(userId: string) {
     description: "Il tuo spazio e' pronto. Completa il profilo per iniziare il test reale.",
     type: "system",
     priority: "normal",
-    action: "/profile"
+    action: routes.studioMioStudio
   });
 }
 
@@ -73,7 +74,7 @@ export async function createProfileCompletedNotification(userId: string) {
     description: "Le informazioni del tuo studio sono state salvate correttamente.",
     type: "system",
     priority: "normal",
-    action: "/profile"
+    action: routes.studioMioStudio
   });
 }
 

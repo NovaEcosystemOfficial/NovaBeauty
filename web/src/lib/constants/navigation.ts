@@ -23,10 +23,5 @@ export const mainNavigation = [
     label: "Studio",
     href: "/studio",
     icon: "studio"
-  },
-  {
-    label: "Profilo",
-    href: "/profile",
-    icon: "profile"
   }
 ] as const;
