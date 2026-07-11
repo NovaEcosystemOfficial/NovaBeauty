@@ -10,6 +10,13 @@ Registro delle modifiche infrastrutturali.
 - Notifiche spostate sotto Studio mantenendo la route `/notifications` compatibile.
 - Predisposto namespace `novabeautyUsers/{uid}/inventory/{productId}` per il futuro Magazzino.
 - Aggiunta pagina iniziale Magazzino e Impostazioni app sotto Studio.
+- Riorganizzata la navigazione: rimossa la tab **Profilo**, bottom bar a 5 voci.
+- Aggiunta sezione **Il mio studio** (`/studio/mio-studio`) con il contenuto ex Profilo.
+- Predisposta architettura hub Studio (`studio-hub.ts`) per sezioni future.
+
+### Changed
+
+- `/profile` reindirizza a `/studio/mio-studio` per deep link e notifiche legacy.
 
 ### Notes
 
