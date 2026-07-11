@@ -35,6 +35,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/client";
 import { appointmentsPath, clientsPath, profilePath, servicesPath } from "@/lib/firebase/paths";
+import { routes } from "@/lib/constants/routes";
 import type { AppointmentDocument, ClientDocument, ProfileDocument, ServiceDocument } from "@/types/firestore";
 
 type DashboardAppointment = AppointmentDocument & {
@@ -132,7 +133,7 @@ export function DashboardHome() {
       {
         title: "Completa il profilo",
         description: "Aggiungi dati attivita', titolare e contatti.",
-        href: "/profile",
+        href: routes.studioMioStudio,
         done: profileComplete
       },
       {
@@ -328,8 +329,8 @@ export function DashboardHome() {
       tone: "gold" as const
     },
     {
-      label: "Profilo",
-      href: "/profile",
+      label: "Il mio studio",
+      href: routes.studioMioStudio,
       icon: Store,
       tone: "lavender" as const
     }

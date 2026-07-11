@@ -45,7 +45,7 @@ export function AppSettings() {
 
   return (
     <div className="space-y-5">
-      <SubpageHeader title="Impostazioni app" subtitle="Preferenze e comportamento dell'app." backHref={routes.studio} />
+      <SubpageHeader title="Impostazioni" subtitle="Preferenze dell'app e configurazione." backHref={routes.studio} />
 
       <section className="space-y-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-beauty-muted">Notifiche</h2>
@@ -103,11 +103,11 @@ export function AppSettings() {
 
       <section className="space-y-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-beauty-muted">Dati</h2>
-        <Link href={routes.profile} className="block">
+        <Link href={routes.studioMioStudio} className="block">
           <Card className="flex items-center justify-between gap-3 p-4 transition hover:bg-beauty-card">
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-beauty-text">Profilo attività</p>
-              <p className="text-[13px] text-beauty-muted">Dati, contatti e identità dello studio</p>
+              <p className="text-[15px] font-semibold text-beauty-text">Il mio studio</p>
+              <p className="text-[13px] text-beauty-muted">Dati, contatti e informazioni dell&apos;attività.</p>
             </div>
             <ChevronRight className="size-4 shrink-0 text-beauty-subtle" aria-hidden="true" />
           </Card>

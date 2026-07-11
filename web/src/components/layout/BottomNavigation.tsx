@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Home, PanelsTopLeft, Scissors, UserCircle, Users } from "lucide-react";
+import { Calendar, Home, PanelsTopLeft, Scissors, Users } from "lucide-react";
 import { NotificationBadge } from "@/components/notifications/NotificationBadge";
 import { mainNavigation } from "@/lib/constants/navigation";
 import { isStudioSectionPath } from "@/lib/constants/routes";
@@ -13,8 +13,7 @@ const icons = {
   clients: Users,
   appointments: Calendar,
   services: Scissors,
-  studio: PanelsTopLeft,
-  profile: UserCircle
+  studio: PanelsTopLeft
 };
 
 export function BottomNavigation() {
@@ -22,7 +21,7 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-beauty-border/80 bg-beauty-surface/88 shadow-beauty-floating backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-2xl grid-cols-6 pb-[max(env(safe-area-inset-bottom),0px)]">
+      <div className="mx-auto grid h-16 max-w-2xl grid-cols-5 pb-[max(env(safe-area-inset-bottom),0px)]">
         {mainNavigation.map((item) => {
           const Icon = icons[item.icon];
           const isActive = item.icon === "studio" ? isStudioSectionPath(pathname) : pathname === item.href;

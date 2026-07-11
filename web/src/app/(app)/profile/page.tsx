@@ -1,11 +1,6 @@
-import { ProfileForm } from "@/components/profile/ProfileForm";
-import { TopHeader } from "@/components/layout/TopHeader";
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/constants/routes";
 
 export default function ProfilePage() {
-  return (
-    <div className="space-y-6">
-      <TopHeader title="Profilo" subtitle="Attivita' estetica" />
-      <ProfileForm />
-    </div>
-  );
+  redirect(routes.studioMioStudio);
 }

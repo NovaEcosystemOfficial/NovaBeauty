@@ -14,6 +14,7 @@ export const routes = {
   services: "/services",
   statistics: "/statistics",
   studio: "/studio",
+  studioMioStudio: "/studio/mio-studio",
   studioMagazzino: "/studio/magazzino",
   studioSettings: "/studio/settings",
   notifications: "/notifications",
