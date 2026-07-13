@@ -6,3 +6,13 @@ build
 *.tsbuildinfo
 public/sw.js
 public/workbox-*.js
+
+# Capacitor Android local artifacts
+android/.gradle/
+android/.idea/
+android/local.properties
+android/app/build/
+android/build/
+android/captures/
+android/.cxx/
+android/**/*.iml
